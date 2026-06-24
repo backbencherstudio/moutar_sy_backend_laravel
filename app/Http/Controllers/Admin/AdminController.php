@@ -6,16 +6,25 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class AdminController extends Controller
 {
     public function index()
     {
-        $admin = Admin::all();
+        $admins = Admin::get();
+
+        $admins->transform(function ($admin) {
+            $admin->image = $admin->image
+                ? asset('storage/'.$admin->image)
+                : null;
+
+            return $admin;
+        });
 
         return response()->json([
             'status' => 'success',
-            'admin' => $admin,
+            'admin' => $admins,
         ]);
     }
 
@@ -25,7 +34,6 @@ class AdminController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:admins,email',
             'password' => 'required|string|min:6',
-            // 'role' => 'required|exists:roles,name',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -90,26 +98,49 @@ class AdminController extends Controller
 
     public function update(Request $request, $id)
     {
-        $admin = Admin::findOrFail($id);
+        $admin = Admin::find($id);
+
+        if (! $admin) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Admin not found',
+            ], 404);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:admins,email,'.$id,
+            'password' => 'nullable|string|min:6',
+            'role' => 'required|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        if ($request->hasFile('image')) {
+
+            if ($admin->image && Storage::disk('public')->exists($admin->image)) {
+                Storage::disk('public')->delete($admin->image);
+            }
+
+            $imagePath = $request->file('image')->store('admins', 'public');
+            $admin->image = $imagePath;
+        }
 
         $admin->name = $request->name;
         $admin->email = $request->email;
         $admin->role = $request->role;
 
         if ($request->filled('password')) {
-            $admin->password = bcrypt($request->password);
-        }
-
-        if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $imageName = time().'.'.$image->getClientOriginalExtension();
-            $image->move(public_path('uploads/admins'), $imageName);
-            $admin->image = $imageName;
+            $admin->password = Hash::make($request->password);
         }
 
         $admin->save();
 
+        $admin->syncRoles([$request->role]);
+
+        $admin->makeHidden('password');
+
         return response()->json([
+            'status' => 'success',
             'message' => 'Admin updated successfully',
             'admin' => $admin,
         ]);
