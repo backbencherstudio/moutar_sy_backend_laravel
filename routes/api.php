@@ -14,9 +14,10 @@ Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.logi
 
 // user login
 Route::post('register', [UserController::class, 'register']);
-Route::post('verifyotp', [UserController::class, 'verifyotp']);
-Route::post('resetotp', [UserController::class, 'resetotp']);
+Route::post('verifyotp', [UserController::class, 'verifyOtp']);
+Route::post('resetotp', [UserController::class, 'resetOtp']);
 Route::post('login', [UserController::class, 'login']);
+Route::post('loginverify', [UserController::class, 'loginVerify']);
 
 // google login api
 Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);

@@ -128,7 +128,7 @@ class UserController extends Controller
         ], 201);
     }
 
-    public function resetotp(Request $request)
+    public function resetOtp(Request $request)
     {
 
         $request->validate([
@@ -179,5 +179,91 @@ class UserController extends Controller
                 'message' => 'Failed to resend SMS: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function login(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string|exists:users,phone',
+        ], [
+            'phone.exists' => 'This phone number is not registered.',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $otp = rand(1000, 9999);
+
+        $user = User::where('phone', $request->phone)->first();
+        $user->update([
+            'otp' => $otp,
+            'otp_expires_at' => \Carbon\Carbon::now()->addMinutes(3),
+        ]);
+
+        try {
+            $sid = config('services.twilio.sid');
+            $token = config('services.twilio.token');
+            $twilio_number = config('services.twilio.number');
+
+            $client = new \Twilio\Rest\Client($sid, $token);
+            $client->messages->create($request->phone, [
+                'from' => $twilio_number,
+                'body' => "Your Teracash login verification code is: $otp",
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Login OTP sent to your Phone Number.',
+                'phone' => $request->phone,
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Failed to send login SMS: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function loginVerify(Request $request)
+    {
+
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string',
+            'otp' => 'required|string|size:4',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = User::where('phone', $request->phone)
+            ->where('otp', $request->otp)
+            ->where('otp_expires_at', '>', \Carbon\Carbon::now())
+            ->first();
+
+        if (! $user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Invalid OTP or OTP has expired.',
+            ], 400);
+        }
+
+        $user->update([
+            'otp' => null,
+            'otp_expires_at' => null,
+        ]);
+
+        $plainToken = $user->createToken('login_token')->plainTextToken;
+
+        $cleanToken = \Illuminate\Support\Str::after($plainToken, '|');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Login successful!',
+            'token' => $cleanToken,
+            'user' => $user,
+        ], 200);
     }
 }
