@@ -41,4 +41,10 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URL'),
     ],
 
+    'twilio' => [
+        'sid' => env('TWILIO_SID'),
+        'token' => env('TWILIO_AUTH_TOKEN'),
+        'number' => env('TWILIO_NUMBER'),
+    ],
+
 ];

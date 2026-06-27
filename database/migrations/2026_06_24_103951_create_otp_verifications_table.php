@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    
+
     public function up(): void
     {
         Schema::create('otp_verifications', function (Blueprint $table) {
             $table->id();
-            $table->string('email');
+            $table->string('phone');
             $table->string('otp');
             $table->timestamp('expires_at');
             $table->timestamps();
