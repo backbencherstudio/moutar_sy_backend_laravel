@@ -20,6 +20,7 @@ class AdminController extends Controller
                 : null;
 
             return $admin;
+            // return $admin;
         });
 
         return response()->json([
