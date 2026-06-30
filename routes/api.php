@@ -24,22 +24,23 @@ Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 // Admin Protected Routes
-Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
-    Route::post('/register', [AdminController::class, 'register']);
-    Route::get('/index', [AdminController::class, 'index']);
-    Route::get('/edit/{id}', [AdminController::class, 'edit']);
-    Route::post('/update/{id}', [AdminController::class, 'update']);
-    Route::delete('/delete/{id}', [AdminController::class, 'destroy']);
+// Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
+    Route::middleware(['auth:api','role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('/register', [AdminController::class, 'register'])->name('register');
+    Route::get('/index', [AdminController::class, 'index'])->name('index');
+    Route::get('/edit/{id}', [AdminController::class, 'edit'])->name('edit');
+    Route::post('/update/{id}', [AdminController::class, 'update'])->name('update');
+    Route::delete('/delete/{id}', [AdminController::class, 'destroy'])->name('destroy');
 
     // Role
-    Route::prefix('role')->group(function () {
+    Route::prefix('role')->name('role.')->group(function () {
         Route::get('index', [RoleController::class, 'index'])->name('index');
         Route::post('store', [RoleController::class, 'store'])->name('store');
         Route::get('edit/{id}', [RoleController::class, 'edit'])->name('edit');
         Route::post('update/{id}', [RoleController::class, 'update'])->name('update');
     });
     // permission
-    Route::prefix('permission')->group(function () {
+    Route::prefix('permission')->name('permission.')->group(function () {
         Route::get('index', [PermissionController::class, 'index'])->name('index');
         Route::post('store', [PermissionController::class, 'store'])->name('store');
         Route::get('edit/{id}', [PermissionController::class, 'edit'])->name('edit');
@@ -48,8 +49,8 @@ Route::middleware(['auth:admin'])->prefix('admin')->group(function () {
 
     // setting
     Route::prefix('setting')->group(function () {
-        Route::get('index', [SettingController::class, 'index']);
-        Route::post('update', [SettingController::class, 'update']);
+        Route::get('index', [SettingController::class, 'index'])->name('index');
+        Route::post('update', [SettingController::class, 'update'])->name('update');
     });
 
     // mail

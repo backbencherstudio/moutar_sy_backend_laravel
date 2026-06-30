@@ -60,7 +60,7 @@ class AdminController extends Controller
         return response()->json([
             'status' => 'success admin register',
             'admin' => $admin,
-            'token' => explode('|', $token)[1],
+            'Admin_token' => explode('|', $token)[1],
         ]);
     }
 
@@ -86,7 +86,7 @@ class AdminController extends Controller
         return response()->json([
             'status' => 'success admin login successfull',
             'admin' => $admin,
-            'token' => explode('|', $token)[1],
+            'Admin_token' => explode('|', $token)[1],
         ], 200);
     }
 
