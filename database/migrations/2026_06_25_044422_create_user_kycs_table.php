@@ -17,8 +17,13 @@ return new class extends Migration
             $table->string('country');
             $table->enum('document_type', ['passport', 'id_card']);
             $table->string('front_image');
-            $table->string('back_image')->nullable();
-            $table->json('card_details')->nullable();
+            $table->string('back_image');
+            $table->string('nid_number');
+            $table->string('name')->nullable();
+            $table->string('father_name')->nullable();
+            $table->string('mother_name')->nullable();
+            $table->date('date_of_birth')->nullable();
+            $table->text('address')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
         });
