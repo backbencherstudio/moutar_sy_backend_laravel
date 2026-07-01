@@ -13,19 +13,12 @@ return new class extends Migration
     {
         Schema::create('user_kycs', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete()->unique();
             $table->string('country');
             $table->enum('document_type', ['passport', 'id_card']);
             $table->string('front_image');
             $table->string('back_image')->nullable();
-            // front_image
-            $table->string('id_card_number')->nullable()->unique();
-            $table->string('name_on_card')->nullable();
-            $table->string('father_name_on_card')->nullable();
-
-            // back_image
-            $table->text('address_on_card')->nullable();
-
+            $table->json('card_details')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamps();
         });

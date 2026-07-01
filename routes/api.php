@@ -1,13 +1,15 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\User\KycsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Api\EmailController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\PermissionController;
-use App\Http\Controllers\Admin\RoleController;
+
 
 // Admin Public Routes
 Route::post('/admin/login', [AdminController::class, 'login'])->name('admin.login');
@@ -24,8 +26,7 @@ Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 // Admin Protected Routes
-// Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
-    Route::middleware(['auth:api','role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('/register', [AdminController::class, 'register'])->name('register');
     Route::get('/index', [AdminController::class, 'index'])->name('index');
     Route::get('/edit/{id}', [AdminController::class, 'edit'])->name('edit');
@@ -58,5 +59,12 @@ Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCa
         Route::post('/send-email', [EmailController::class, 'sendEmail']);
 
     });
+
+});
+
+
+Route::middleware(['auth:user-api'])->prefix('user')->name('kycs.')->group(function () {
+
+    Route::post('kycs/store', [KycsController::class, 'store'])->name('store');
 
 });

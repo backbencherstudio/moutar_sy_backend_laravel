@@ -46,5 +46,6 @@ return [
         'token' => env('TWILIO_AUTH_TOKEN'),
         'number' => env('TWILIO_NUMBER'),
     ],
+    
 
 ];

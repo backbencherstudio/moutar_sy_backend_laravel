@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Admin;
+use App\Models\User;
+
 return [
 
     /*
@@ -44,6 +47,10 @@ return [
             'driver' => 'sanctum',
             'provider' => 'admins',
         ],
+        'user-api' => [
+            'driver' => 'sanctum',
+            'provider' => 'users',
+        ],
 
         // New admin guard
         'admin' => [
@@ -51,8 +58,6 @@ return [
             'provider' => 'admins',
         ],
     ],
-
-
 
     /*
     |--------------------------------------------------------------------------
@@ -74,19 +79,29 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            'model' => env('AUTH_MODEL', User::class),
         ],
 
-        // Admin provider
-        'admins' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\Admin::class,
-        ],
+        // // Admin provider
+        // 'admins' => [
+        //     'driver' => 'eloquent',
+        //     'model' => Admin::class,
+        // ],
 
         // 'users' => [
         //     'driver' => 'database',
         //     'table' => 'users',
         // ],
+
+        'users' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\User::class,
+        ],
+
+        'admins' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Admin::class,
+        ],
     ],
 
     /*
