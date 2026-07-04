@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
+use App\Http\Controllers\Admin\ExchangeRateController;
 use App\Http\Controllers\User\KycsController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Api\EmailController;
@@ -46,6 +47,14 @@ Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->
         Route::post('store', [PermissionController::class, 'store'])->name('store');
         Route::get('edit/{id}', [PermissionController::class, 'edit'])->name('edit');
         Route::post('update/{id}', [PermissionController::class, 'update'])->name('update');
+    });
+    // exchange rate
+    Route::prefix('exchange')->name('exchange.')->group(function () {
+        Route::get('index', [ExchangeRateController::class, 'index'])->name('index');
+        Route::post('store', [ExchangeRateController::class, 'store'])->name('store');
+        Route::get('edit/{id}', [ExchangeRateController::class, 'edit'])->name('edit');
+        Route::post('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
+        Route::delete('delete/{id}', [ExchangeRateController::class, 'destroy'])->name('destroy');
     });
 
     // setting

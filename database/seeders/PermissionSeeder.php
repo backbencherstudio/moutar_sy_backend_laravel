@@ -6,7 +6,7 @@ use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
-class PermisionSeeder extends Seeder
+class PermissionSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -35,6 +35,13 @@ class PermisionSeeder extends Seeder
                 'admin.permission.store',
                 'admin.permission.edit',
                 'admin.permission.update',
+            ],
+            'exchange' => [
+                'admin.exchange.index',
+                'admin.exchange.store',
+                'admin.exchange.edit',
+                'admin.exchange.update',
+                'admin.exchange.destroy',
             ],
             'setting' => [
                 'admin.setting.index',
