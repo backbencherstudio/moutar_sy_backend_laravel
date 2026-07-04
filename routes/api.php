@@ -5,7 +5,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\ExchangeRateController;
-use App\Http\Controllers\User\KycsController;
+use App\Http\Controllers\User\BeneficiaryController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Api\EmailController;
 use App\Http\Controllers\Api\GoogleAuthController;
@@ -72,8 +72,8 @@ Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->
 });
 
 
-Route::middleware(['auth:user-api'])->prefix('user')->name('kycs.')->group(function () {
+Route::middleware(['auth:user-api'])->prefix('user')->name('beneficiaries.')->group(function () {
 
-    Route::post('kycs/store', [KycsController::class, 'store'])->name('store');
+    Route::post('beneficiaries/store', [BeneficiaryController::class, 'store'])->name('store');
 
 });
