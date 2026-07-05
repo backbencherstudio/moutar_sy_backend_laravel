@@ -15,10 +15,12 @@ class UserKyc extends Model
         'document_type',
         'front_image',
         'back_image',
-        'id_card_number',
-        'name_on_card',
-        'father_name_on_card',
-        'address_on_card',
+        'nid_number',
+        'name',
+        'father_name',
+        'mother_name',
+        'date_of_birth',
+        'address',
         'status',
     ];
 

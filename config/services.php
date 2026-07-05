@@ -46,6 +46,16 @@ return [
         'token' => env('TWILIO_AUTH_TOKEN'),
         'number' => env('TWILIO_NUMBER'),
     ],
-    
+    'hub2' => [
+        'base_url' => env('HUB2_BASE_URL'),
+        'api_key' => env('HUB2_API_KEY'),
+        'merchant_id' => env('HUB2_MERCHANT_ID'),
+        'environment' => env('HUB2_ENVIRONMENT'),
+    ],
+    'zeepay' => [
+        'url' => env('ZEEPAY_BASE_URL'),
+        'key' => env('ZEEPAY_API_KEY'),
+        'secret' => env('ZEEPAY_SECRET'),
+    ],
 
 ];
