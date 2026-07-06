@@ -57,5 +57,10 @@ return [
         'key' => env('ZEEPAY_API_KEY'),
         'secret' => env('ZEEPAY_SECRET'),
     ],
+    'didit' => [
+        'api_key' => env('DIDIT_API_KEY'),
+        'workflow_id' => env('DIDIT_WORKFLOW_ID'),
+        'base_url' => env('DIDIT_BASE_URL', 'https://verification.didit.me'),
+    ],
 
 ];

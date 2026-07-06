@@ -27,7 +27,8 @@ Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
 // Admin Protected Routes
-Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+// Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('/register', [AdminController::class, 'register'])->name('register');
     Route::get('/index', [AdminController::class, 'index'])->name('index');
     Route::get('/edit/{id}', [AdminController::class, 'edit'])->name('edit');
@@ -51,6 +52,7 @@ Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->
     // exchange rate
     Route::prefix('exchange')->name('exchange.')->group(function () {
         Route::get('index', [ExchangeRateController::class, 'index'])->name('index');
+        Route::post('calculate', [ExchangeRateController::class, 'calculate'])->name('calculate');
         Route::post('store', [ExchangeRateController::class, 'store'])->name('store');
         Route::get('edit/{id}', [ExchangeRateController::class, 'edit'])->name('edit');
         Route::post('update/{id}', [ExchangeRateController::class, 'update'])->name('update');
@@ -75,7 +77,7 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
         Route::post('store', [BeneficiaryController::class, 'store'])->name('store');
-        
+
     });
     Route::prefix('kyc')->name('kyc.')->group(function () {
         Route::post('store', [KycController::class, 'store'])->name('store');
