@@ -14,6 +14,7 @@ return new class extends Migration
             $table->string('user_id')->nullable();
             $table->string('phone')->nullable();
             $table->string('otp');
+            $table->longText('payload')->nullable();
             $table->timestamp('expires_at');
             $table->timestamps();
         });

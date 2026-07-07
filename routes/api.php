@@ -77,10 +77,13 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
         Route::post('store', [BeneficiaryController::class, 'store'])->name('store');
+        Route::post('verify-otp', [BeneficiaryController::class, 'verifyOtp'])->name('verify-otp');
 
     });
     Route::prefix('kyc')->name('kyc.')->group(function () {
-        Route::post('store', [KycController::class, 'store'])->name('store');
+        Route::post('initiate', [KycController::class, 'initiateVerification'])->name('initiate');
     });
 
 });
+
+Route::post('/webhook/didit', [KycController::class, 'handleWebhook'])->name('didit.webhook');

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,23 +11,62 @@ class UserKyc extends Model
     use HasFactory;
 
     protected $fillable = [
+
         'user_id',
-        'country',
-        'document_type',
-        'front_image',
-        'back_image',
-        'nid_number',
+
         'name',
-        'father_name',
-        'mother_name',
+        'email',
+        'phone',
+        'gender',
         'date_of_birth',
         'address',
+
+        'country',
+        'father_name',
+        'mother_name',
+
+        'document_type',
+        'document_number',
+        'nid_number',
+        'passport_number',
+        'document_expiry_date',
+
+        'front_image',
+        'back_image',
+
         'status',
+        'rejection_reason',
+
+        'didit_session_id',
+        'didit_verification_id',
+        'didit_workflow_id',
+        'didit_attempt_id',
+
+        'didit_response',
+        'didit_webhook_payload',
+        'didit_verification_data',
+
+        'verified_at',
+        'last_attempt_at',
+        'didit_webhook_received_at',
+
+        'attempt_count',
     ];
 
-    /**
-     * Get the user that owns the KYC document.
-     */
+    protected $casts = [
+
+        'didit_response' => 'array',
+        'didit_webhook_payload' => 'array',
+        'didit_verification_data' => 'array',
+
+        'verified_at' => 'datetime',
+        'last_attempt_at' => 'datetime',
+        'didit_webhook_received_at' => 'datetime',
+
+        'date_of_birth' => 'date',
+        'document_expiry_date' => 'date',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
