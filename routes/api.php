@@ -60,7 +60,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
     });
 
     // setting
-    Route::prefix('setting')->group(function () {
+    Route::prefix('setting')->name('setting.')->group(function () {
         Route::get('index', [SettingController::class, 'index'])->name('index');
         Route::post('update', [SettingController::class, 'update'])->name('update');
     });
@@ -81,9 +81,9 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     });
     Route::prefix('kyc')->name('kyc.')->group(function () {
-        Route::post('initiate', [KycController::class, 'initiateVerification'])->name('initiate');
+        Route::post('initiate', [KycController::class, 'createSession'])->name('initiate');
     });
 
 });
 
-Route::post('/webhook/didit', [KycController::class, 'handleWebhook'])->name('didit.webhook');
+Route::post('/webhook/didit', [KycController::class, 'initiateVerification'])->name('didit.webhook');
