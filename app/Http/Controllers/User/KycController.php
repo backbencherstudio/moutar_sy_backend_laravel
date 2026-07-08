@@ -12,9 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class KycController extends Controller
 {
-    /**
-     * ১. ভেরিফিকেশন সেশন তৈরি করা (ইউজারকে ক্যামেরার লাইভ লিংক দেওয়ার জন্য)
-     */
+    
     public function createSession(Request $request)
     {
         $user = Auth::user(); // কারেন্ট লগইন করা ইউজার
