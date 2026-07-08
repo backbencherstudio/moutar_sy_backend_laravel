@@ -46,6 +46,7 @@ class KycController extends Controller
             'document_type'        => $kyc->document_type,
             'document_number'      => $kyc->document_number,
             'nid_number'           => $kyc->nid_number,
+            'didit_verification_data' => $kyc->didit_verification_data,
             'passport_number'      => $kyc->passport_number,
             'document_expiry_date' => $kyc->document_expiry_date?->format('Y-m-d'),
             'front_image'          => $kyc->front_image,
