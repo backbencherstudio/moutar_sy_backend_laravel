@@ -26,7 +26,7 @@ class KycController extends Controller
         ])->post($apiUrl, [
             'workflow_id' => $workflowId,
             'vendor_data' => (string) $user->id,
-            'callback' => 'http://teracash.pixelstack.cloud/api/webhooks/didit',
+            'callback' => 'https://teracash.pixelstack.cloud/api/webhooks/didit',
         ]);
 
         if ($response->failed()) {
