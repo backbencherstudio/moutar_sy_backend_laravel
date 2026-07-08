@@ -82,8 +82,9 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
     });
     Route::prefix('kyc')->name('kyc.')->group(function () {
         Route::post('initiate', [KycController::class, 'createSession'])->name('initiate');
+        Route::get('sync-status', [KycController::class, 'checkAndSyncKycStatus'])->name('sync-status');
     });
 
 });
 
-Route::post('/webhook/didit', [KycController::class, 'initiateVerification'])->name('didit.webhook');
+Route::post('/webhooks/didit', [KycController::class, 'initiateVerification'])->name('didit.webhook');

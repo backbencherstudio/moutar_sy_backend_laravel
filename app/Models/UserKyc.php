@@ -59,29 +59,16 @@ class UserKyc extends Model
         'attempt_count',
     ];
 
-    /**
-     * Attribute casting for dates & JSON payloads.
-     */
     protected $casts = [
-        // JSON Fields
-        'didit_response'          => 'array',
-        'didit_webhook_payload'   => 'array',
+        'didit_response' => 'array',
+        'didit_webhook_payload' => 'array',
         'didit_verification_data' => 'array',
-
-        // Datetime Fields
-        'verified_at'               => 'datetime',
-        'last_attempt_at'           => 'datetime',
+        'last_attempt_at' => 'datetime',
+        'verified_at' => 'datetime',
         'didit_webhook_received_at' => 'datetime',
-
-        // Date Fields
-        'date_of_birth'        => 'date',
-        'document_expiry_date' => 'date',
-
-        // Integer Fields
-        'attempt_count' => 'integer',
     ];
 
-   
+    
 
     public function user(): BelongsTo
     {

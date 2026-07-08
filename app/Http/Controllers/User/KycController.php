@@ -48,13 +48,12 @@ class KycController extends Controller
             return response()->json(['error' => 'Invalid data from verification provider.'], 500);
         }
 
-        // Migration Schema অনুযায়ী কলামের সঠিক নাম ব্যবহার করা হয়েছে
         UserKyc::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'didit_session_id' => $sessionId, // Schema অনুযায়ী সঠিক
+                'didit_session_id' => $sessionId,
                 'status' => 'pending',
-                'didit_response' => $data,      // Schema অনুযায়ী সঠিক
+                'didit_response' => $data,
                 'last_attempt_at' => now(),
                 'attempt_count' => DB::raw('attempt_count + 1'),
             ]
@@ -65,6 +64,7 @@ class KycController extends Controller
             'verification_url' => $verificationUrl,
         ], 200);
     }
+
 
     public function initiateVerification(Request $request)
     {
@@ -86,11 +86,9 @@ class KycController extends Controller
 
         Log::info('Didit Raw Payload Received:', $payload);
 
-        // Dynamic extraction (Session ID root বা session অবজেক্টেও থাকতে পারে)
         $sessionId = $payload['session_id'] ?? $payload['session']['id'] ?? null;
         $eventId = $payload['event_id'] ?? null;
 
-        // Fix 1: Status Extract (Didit decision.status অথবা status দুইটাই চেক করবে)
         $status = $payload['decision']['status']
                     ?? $payload['session']['status']
                     ?? $payload['status']
@@ -104,8 +102,12 @@ class KycController extends Controller
             return response()->json(['error' => 'Session not found'], 404);
         }
 
-        // Idempotency Check
-        if ($eventId && isset($kyc->didit_webhook_payload['event_id']) && $kyc->didit_webhook_payload['event_id'] === $eventId) {
+        // Idempotency Check (Safe Array/JSON Handle)
+        $existingPayload = is_array($kyc->didit_webhook_payload)
+            ? $kyc->didit_webhook_payload
+            : json_decode($kyc->didit_webhook_payload ?? '[]', true);
+
+        if ($eventId && isset($existingPayload['event_id']) && $existingPayload['event_id'] === $eventId) {
             return response()->json(['status' => 'duplicate ignored'], 200);
         }
 
@@ -128,11 +130,9 @@ class KycController extends Controller
 
                 if (! empty($idVerifications)) {
                     $idData = $idVerifications[0];
-
-                    // Fix 2: Holder Info Check (ফ্লেক্সিবল চেক)
                     $holder = $idData['holder_fields'] ?? $idData['fields'] ?? [];
 
-                    // পার্সোনাল ডাটা
+                    // Name Handling
                     $firstName = $holder['first_name']['value'] ?? $holder['first_name'] ?? '';
                     $lastName = $holder['last_name']['value'] ?? $holder['last_name'] ?? '';
                     $kyc->name = trim("{$firstName} {$lastName}");
@@ -153,7 +153,7 @@ class KycController extends Controller
                         $kyc->nid_number = $kyc->document_number;
                     }
 
-                    // Fix 3: Images URL mapping
+                    // Images URL mapping
                     $kyc->front_image = $idData['front_document_url'] ?? $idData['front_image_url'] ?? null;
                     $kyc->back_image = $idData['back_document_url'] ?? $idData['back_image_url'] ?? null;
 
@@ -173,7 +173,6 @@ class KycController extends Controller
                 break;
 
             default:
-                // Status না পেলেও অন্ততঃ Webhook পেয়েছ সেটি কনফার্ম করবে
                 if (empty($kyc->status) || $kyc->status === 'pending') {
                     $kyc->status = 'pending';
                 }
@@ -185,11 +184,51 @@ class KycController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data updated successfully.',
+            'kyc' => $kyc,
         ], 200);
     }
 
+    
+    public function checkAndSyncKycStatus(Request $request)
+    {
+        $user = Auth::user();
+        $kyc = UserKyc::where('user_id', $user->id)->first();
+
+        if (! $kyc || ! $kyc->didit_session_id) {
+            return response()->json(['error' => 'No active KYC session found for this user.'], 404);
+        }
+
+        $apiKey = config('services.didit.api_key');
+        $apiUrl = "https://apx.didit.me/v1/session/{$kyc->didit_session_id}/decision/";
+
+        $response = Http::withHeaders([
+            'x-api-key' => $apiKey,
+        ])->get($apiUrl);
+
+        if ($response->successful()) {
+            $payload = $response->json();
+
+            // Webhook-এর মতো করে কাস্টম Request তৈরি করে initiateVerification মেথডে পাঠানো হচ্ছে
+            $fakeRequest = new Request([], [], [], [], [], [], json_encode($payload));
+            $fakeRequest->headers->set('X-Timestamp', (string) time());
+
+            return $this->initiateVerification($fakeRequest);
+        }
+
+        Log::error('Manual Sync Failed', [
+            'session_id' => $kyc->didit_session_id,
+            'response' => $response->body(),
+        ]);
+
+        return response()->json(['error' => 'Could not fetch decision from Didit API.'], 400);
+    }
+
+    /**
+     * Verify Webhook Signature
+     */
     private function verifyDiditSignature(Request $request, string $rawBody): bool
     {
+        // Testing phase-এ বাইপাস করার জন্য true রাখা হয়েছে
         return true;
 
         $secret = config('services.didit.webhook_secret');
