@@ -64,9 +64,7 @@ class KycController extends Controller
         ], 200);
     }
 
-    /**
-     * ২. Didit ওয়েবহুক হ্যান্ডলার (আইডি কার্ড স্ক্যান করার পর ডেটা অটো স্টোর হওয়ার জন্য)
-     */
+    
     public function initiateVerification(Request $request)
     {
         $rawBody = $request->getContent();
