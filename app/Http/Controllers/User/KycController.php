@@ -67,128 +67,172 @@ class KycController extends Controller
 
 
     public function initiateVerification(Request $request)
-    {
-        $rawBody = $request->getContent();
-        $timestamp = $request->header('X-Timestamp');
+{
+    // ==========================================
+    // ১. GET Request Handling (User Redirect)
+    // ==========================================
+    if ($request->isMethod('get')) {
+        $sessionId = $request->query('verificationSessionId')
+                  ?? $request->query('session_id')
+                  ?? $request->query('vendor_data');
 
-        if (! $timestamp) {
-            return response()->json(['error' => 'Timestamp is missing'], 400);
-        }
+        $status = $request->query('status', 'Completed');
 
-        if (! $this->verifyDiditSignature($request, $rawBody)) {
-            return response()->json(['error' => 'Invalid webhook signature'], 401);
-        }
+        // যদি URL-এ session_id থাকে, তবে ব্যাকগ্রাউন্ডে একবার Sync করার চেষ্টা করতে পারেন
+        if ($sessionId) {
+            $kyc = UserKyc::where('didit_session_id', $sessionId)->first();
 
-        $payload = json_decode($rawBody, true);
-        if (! $payload) {
-            return response()->json(['error' => 'Invalid JSON payload'], 400);
-        }
+            if ($kyc && $kyc->status === 'pending') {
+                // Direct Sync call via Didit API
+                $apiKey = config('services.didit.api_key');
+                $apiUrl = "https://apx.didit.me/v1/session/{$sessionId}/decision/";
 
-        Log::info('Didit Raw Payload Received:', $payload);
+                $response = Http::withHeaders(['x-api-key' => $apiKey])->get($apiUrl);
 
-        $sessionId = $payload['session_id'] ?? $payload['session']['id'] ?? null;
-        $eventId = $payload['event_id'] ?? null;
+                if ($response->successful()) {
+                    $payload = $response->json();
 
-        $status = $payload['decision']['status']
-                    ?? $payload['session']['status']
-                    ?? $payload['status']
-                    ?? '';
+                    // Recursive Post Request call to process data internally
+                    $fakeRequest = new Request([], [], [], [], [], [], json_encode($payload));
+                    $fakeRequest->setMethod('POST');
+                    $fakeRequest->headers->set('X-Timestamp', (string) time());
 
-        $kyc = UserKyc::where('didit_session_id', $sessionId)->first();
-
-        if (! $kyc) {
-            Log::warning("UserKyc record not found for Session ID: {$sessionId}");
-
-            return response()->json(['error' => 'Session not found'], 404);
-        }
-
-        // Idempotency Check (Safe Array/JSON Handle)
-        $existingPayload = is_array($kyc->didit_webhook_payload)
-            ? $kyc->didit_webhook_payload
-            : json_decode($kyc->didit_webhook_payload ?? '[]', true);
-
-        if ($eventId && isset($existingPayload['event_id']) && $existingPayload['event_id'] === $eventId) {
-            return response()->json(['status' => 'duplicate ignored'], 200);
-        }
-
-        // Metadata Store
-        $kyc->didit_webhook_payload = $payload;
-        $kyc->didit_webhook_received_at = now();
-        $kyc->didit_workflow_id = $payload['workflow_id'] ?? $kyc->didit_workflow_id;
-        $kyc->didit_attempt_id = $payload['attempt_id'] ?? $kyc->didit_attempt_id;
-
-        $normalizedStatus = strtolower(trim($status));
-
-        switch ($normalizedStatus) {
-            case 'approved':
-                $kyc->status = 'approved';
-                $kyc->verified_at = now();
-                $kyc->rejection_reason = null;
-
-                $decision = $payload['decision'] ?? $payload;
-                $idVerifications = $decision['id_verifications'] ?? [];
-
-                if (! empty($idVerifications)) {
-                    $idData = $idVerifications[0];
-                    $holder = $idData['holder_fields'] ?? $idData['fields'] ?? [];
-
-                    // Name Handling
-                    $firstName = $holder['first_name']['value'] ?? $holder['first_name'] ?? '';
-                    $lastName = $holder['last_name']['value'] ?? $holder['last_name'] ?? '';
-                    $kyc->name = trim("{$firstName} {$lastName}");
-
-                    $kyc->date_of_birth = $holder['date_of_birth']['value'] ?? $holder['date_of_birth'] ?? null;
-                    $kyc->document_number = $holder['document_number']['value'] ?? $holder['document_number'] ?? null;
-                    $kyc->document_expiry_date = $holder['expiry_date']['value'] ?? $holder['expiry_date'] ?? null;
-
-                    // Document Type mapping
-                    $docType = strtolower($idData['document_type'] ?? '');
-                    if (str_contains($docType, 'passport')) {
-                        $kyc->document_type = 'passport';
-                        $kyc->passport_number = $kyc->document_number;
-                    } elseif (str_contains($docType, 'driving')) {
-                        $kyc->document_type = 'driving_license';
-                    } else {
-                        $kyc->document_type = 'id_card';
-                        $kyc->nid_number = $kyc->document_number;
-                    }
-
-                    // Images URL mapping
-                    $kyc->front_image = $idData['front_document_url'] ?? $idData['front_image_url'] ?? null;
-                    $kyc->back_image = $idData['back_document_url'] ?? $idData['back_image_url'] ?? null;
-
-                    $kyc->didit_verification_data = $idData;
+                    return $this->initiateVerification($fakeRequest);
                 }
-                break;
-
-            case 'declined':
-            case 'rejected':
-                $kyc->status = 'rejected';
-                $kyc->rejection_reason = $payload['decision']['decline_reason'] ?? 'Verification declined by provider.';
-                break;
-
-            case 'in review':
-            case 'in_review':
-                $kyc->status = 'review';
-                break;
-
-            default:
-                if (empty($kyc->status) || $kyc->status === 'pending') {
-                    $kyc->status = 'pending';
-                }
-                break;
+            }
         }
-
-        $kyc->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Data updated successfully.',
-            'kyc' => $kyc,
+            'message' => 'KYC verification process finished. You may return to the app.',
+            'status'  => $status
         ], 200);
     }
 
-    
+    // ==========================================
+    // ২. POST Request Handling (Didit Webhook)
+    // ==========================================
+    $rawBody = $request->getContent();
+    $timestamp = $request->header('X-Timestamp');
+
+    if (! $timestamp) {
+        return response()->json(['error' => 'Timestamp is missing'], 400);
+    }
+
+    if (! $this->verifyDiditSignature($request, $rawBody)) {
+        return response()->json(['error' => 'Invalid webhook signature'], 401);
+    }
+
+    $payload = json_decode($rawBody, true);
+    if (! $payload) {
+        return response()->json(['error' => 'Invalid JSON payload'], 400);
+    }
+
+    Log::info('Didit Raw Payload Received:', $payload);
+
+    $sessionId = $payload['session_id'] ?? $payload['session']['id'] ?? null;
+    $eventId = $payload['event_id'] ?? null;
+
+    $status = $payload['decision']['status']
+                ?? $payload['session']['status']
+                ?? $payload['status']
+                ?? '';
+
+    $kyc = UserKyc::where('didit_session_id', $sessionId)->first();
+
+    if (! $kyc) {
+        Log::warning("UserKyc record not found for Session ID: {$sessionId}");
+
+        return response()->json(['error' => 'Session not found'], 404);
+    }
+
+    // Idempotency Check (Safe Array/JSON Handle)
+    $existingPayload = is_array($kyc->didit_webhook_payload)
+        ? $kyc->didit_webhook_payload
+        : json_decode($kyc->didit_webhook_payload ?? '[]', true);
+
+    if ($eventId && isset($existingPayload['event_id']) && $existingPayload['event_id'] === $eventId) {
+        return response()->json(['status' => 'duplicate ignored'], 200);
+    }
+
+    // Metadata Store
+    $kyc->didit_webhook_payload = $payload;
+    $kyc->didit_webhook_received_at = now();
+    $kyc->didit_workflow_id = $payload['workflow_id'] ?? $kyc->didit_workflow_id;
+    $kyc->didit_attempt_id = $payload['attempt_id'] ?? $kyc->didit_attempt_id;
+
+    $normalizedStatus = strtolower(trim($status));
+
+    switch ($normalizedStatus) {
+        case 'approved':
+            $kyc->status = 'approved';
+            $kyc->verified_at = now();
+            $kyc->rejection_reason = null;
+
+            $decision = $payload['decision'] ?? $payload;
+            $idVerifications = $decision['id_verifications'] ?? [];
+
+            if (! empty($idVerifications)) {
+                $idData = $idVerifications[0];
+                $holder = $idData['holder_fields'] ?? $idData['fields'] ?? [];
+
+                // Name Handling
+                $firstName = $holder['first_name']['value'] ?? $holder['first_name'] ?? '';
+                $lastName = $holder['last_name']['value'] ?? $holder['last_name'] ?? '';
+                $kyc->name = trim("{$firstName} {$lastName}");
+
+                $kyc->date_of_birth = $holder['date_of_birth']['value'] ?? $holder['date_of_birth'] ?? null;
+                $kyc->document_number = $holder['document_number']['value'] ?? $holder['document_number'] ?? null;
+                $kyc->document_expiry_date = $holder['expiry_date']['value'] ?? $holder['expiry_date'] ?? null;
+
+                // Document Type mapping
+                $docType = strtolower($idData['document_type'] ?? '');
+                if (str_contains($docType, 'passport')) {
+                    $kyc->document_type = 'passport';
+                    $kyc->passport_number = $kyc->document_number;
+                } elseif (str_contains($docType, 'driving')) {
+                    $kyc->document_type = 'driving_license';
+                } else {
+                    $kyc->document_type = 'id_card';
+                    $kyc->nid_number = $kyc->document_number;
+                }
+
+                // Images URL mapping
+                $kyc->front_image = $idData['front_document_url'] ?? $idData['front_image_url'] ?? null;
+                $kyc->back_image = $idData['back_document_url'] ?? $idData['back_image_url'] ?? null;
+
+                $kyc->didit_verification_data = $idData;
+            }
+            break;
+
+        case 'declined':
+        case 'rejected':
+            $kyc->status = 'rejected';
+            $kyc->rejection_reason = $payload['decision']['decline_reason'] ?? 'Verification declined by provider.';
+            break;
+
+        case 'in review':
+        case 'in_review':
+            $kyc->status = 'review';
+            break;
+
+        default:
+            if (empty($kyc->status) || $kyc->status === 'pending') {
+                $kyc->status = 'pending';
+            }
+            break;
+    }
+
+    $kyc->save();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Data updated successfully.',
+        'kyc' => $kyc,
+    ], 200);
+}
+
+
     public function checkAndSyncKycStatus(Request $request)
     {
         $user = Auth::user();
