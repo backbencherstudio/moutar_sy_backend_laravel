@@ -10,6 +10,12 @@ class UserKyc extends Model
 {
     use HasFactory;
 
+    protected $table = 'user_kycs';
+
+    /**
+     * Mass assignable attributes.
+     * Schema-এর কলামের নামের সাথে হুবহু মিল রাখা হয়েছে।
+     */
     protected $fillable = [
         'user_id',
 
@@ -36,13 +42,13 @@ class UserKyc extends Model
         'status',
         'rejection_reason',
 
-        // --- Didit integration matching DB columns ---
-        'didit_user_id',            // 'didit_session_id' এর জায়গায়
+        // Didit Integration Fields (Schema Matching)
+        'didit_session_id',
         'didit_verification_id',
         'didit_workflow_id',
-        'didit_attemp_id',          // DB-তে স্পেলিং 'attemp' থাকায় এটি দিন
-        'didit_initiate_payload',   // 'didit_response' এর জায়গায়
+        'didit_attempt_id',
 
+        'didit_response',
         'didit_webhook_payload',
         'didit_verification_data',
 
@@ -53,19 +59,29 @@ class UserKyc extends Model
         'attempt_count',
     ];
 
+    /**
+     * Attribute casting for dates & JSON payloads.
+     */
     protected $casts = [
-
-        'didit_response' => 'array',
-        'didit_webhook_payload' => 'array',
+        // JSON Fields
+        'didit_response'          => 'array',
+        'didit_webhook_payload'   => 'array',
         'didit_verification_data' => 'array',
 
-        'verified_at' => 'datetime',
-        'last_attempt_at' => 'datetime',
+        // Datetime Fields
+        'verified_at'               => 'datetime',
+        'last_attempt_at'           => 'datetime',
         'didit_webhook_received_at' => 'datetime',
 
-        'date_of_birth' => 'date',
+        // Date Fields
+        'date_of_birth'        => 'date',
         'document_expiry_date' => 'date',
+
+        // Integer Fields
+        'attempt_count' => 'integer',
     ];
+
+   
 
     public function user(): BelongsTo
     {
