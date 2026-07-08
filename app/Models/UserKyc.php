@@ -11,7 +11,6 @@ class UserKyc extends Model
     use HasFactory;
 
     protected $fillable = [
-
         'user_id',
 
         'name',
@@ -37,12 +36,13 @@ class UserKyc extends Model
         'status',
         'rejection_reason',
 
-        'didit_session_id',
+        // --- Didit integration matching DB columns ---
+        'didit_user_id',            // 'didit_session_id' এর জায়গায়
         'didit_verification_id',
         'didit_workflow_id',
-        'didit_attempt_id',
+        'didit_attemp_id',          // DB-তে স্পেলিং 'attemp' থাকায় এটি দিন
+        'didit_initiate_payload',   // 'didit_response' এর জায়গায়
 
-        'didit_response',
         'didit_webhook_payload',
         'didit_verification_data',
 

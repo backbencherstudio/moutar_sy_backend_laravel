@@ -61,6 +61,8 @@ class KycController extends Controller
             ]
         );
 
+    
+
         return response()->json([
             'success' => true,
             'verification_url' => $verificationUrl, // এই লিংকে ইউজার আইডি কার্ড আপলোড করবে
