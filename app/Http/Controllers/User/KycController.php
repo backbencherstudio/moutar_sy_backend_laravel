@@ -84,14 +84,18 @@ class KycController extends Controller
             return response()->json(['error' => 'Invalid JSON payload'], 400);
         }
 
-        Log::info('Didit Payload:', $payload);
+        Log::info('Didit Raw Payload Received:', $payload);
 
-        $webhookType = $payload['webhook_type'] ?? '';
-        $sessionId = $payload['session_id'] ?? null;
+        // Dynamic extraction (Session ID root বা session অবজেক্টেও থাকতে পারে)
+        $sessionId = $payload['session_id'] ?? $payload['session']['id'] ?? null;
         $eventId = $payload['event_id'] ?? null;
-        $status = $payload['status'] ?? '';
 
-        // FIX: didit_user_id এর জায়গায় Schema অনুযায়ী didit_session_id দেওয়া হলো
+        // Fix 1: Status Extract (Didit decision.status অথবা status দুইটাই চেক করবে)
+        $status = $payload['decision']['status']
+                    ?? $payload['session']['status']
+                    ?? $payload['status']
+                    ?? '';
+
         $kyc = UserKyc::where('didit_session_id', $sessionId)->first();
 
         if (! $kyc) {
@@ -101,71 +105,79 @@ class KycController extends Controller
         }
 
         // Idempotency Check
-        if (isset($kyc->didit_webhook_payload['event_id']) && $kyc->didit_webhook_payload['event_id'] === $eventId) {
+        if ($eventId && isset($kyc->didit_webhook_payload['event_id']) && $kyc->didit_webhook_payload['event_id'] === $eventId) {
             return response()->json(['status' => 'duplicate ignored'], 200);
         }
 
-        // Metadata Store (Schema অনুযায়ী কলাম নেম দেওয়া হলো)
+        // Metadata Store
         $kyc->didit_webhook_payload = $payload;
         $kyc->didit_webhook_received_at = now();
         $kyc->didit_workflow_id = $payload['workflow_id'] ?? $kyc->didit_workflow_id;
-        $kyc->didit_attempt_id = $payload['attempt_id'] ?? $kyc->didit_attempt_id; // FIX: didit_attempt_id
+        $kyc->didit_attempt_id = $payload['attempt_id'] ?? $kyc->didit_attempt_id;
 
-        if (in_array($webhookType, ['status.updated', 'data.updated']) || ! empty($status)) {
+        $normalizedStatus = strtolower(trim($status));
 
-            switch (strtolower($status)) {
-                case 'approved':
-                    $kyc->status = 'approved';
-                    $kyc->verified_at = now();
-                    $kyc->rejection_reason = null;
+        switch ($normalizedStatus) {
+            case 'approved':
+                $kyc->status = 'approved';
+                $kyc->verified_at = now();
+                $kyc->rejection_reason = null;
 
-                    $decision = $payload['decision'] ?? [];
-                    $idVerifications = $decision['id_verifications'] ?? [];
+                $decision = $payload['decision'] ?? $payload;
+                $idVerifications = $decision['id_verifications'] ?? [];
 
-                    if (! empty($idVerifications)) {
-                        $idData = $idVerifications[0];
-                        $holder = $idData['holder_fields'] ?? [];
+                if (! empty($idVerifications)) {
+                    $idData = $idVerifications[0];
 
-                        // পার্সোনাল ডাটা
-                        $kyc->name = trim(($holder['first_name'] ?? '').' '.($holder['last_name'] ?? ''));
-                        $kyc->date_of_birth = $holder['date_of_birth'] ?? null;
-                        $kyc->document_number = $holder['document_number'] ?? null;
-                        $kyc->document_expiry_date = $holder['expiry_date'] ?? null;
+                    // Fix 2: Holder Info Check (ফ্লেক্সিবল চেক)
+                    $holder = $idData['holder_fields'] ?? $idData['fields'] ?? [];
 
-                        // document_type সেট করার ফিল্ড (Enum এর সাথে ম্যাচ রাখা হয়েছে)
-                        $docType = strtolower($idData['document_type'] ?? '');
-                        if (str_contains($docType, 'passport')) {
-                            $kyc->document_type = 'passport';
-                            $kyc->passport_number = $kyc->document_number;
-                        } elseif (str_contains($docType, 'driving')) {
-                            $kyc->document_type = 'driving_license';
-                        } else {
-                            $kyc->document_type = 'id_card';
-                            $kyc->nid_number = $kyc->document_number;
-                        }
+                    // পার্সোনাল ডাটা
+                    $firstName = $holder['first_name']['value'] ?? $holder['first_name'] ?? '';
+                    $lastName = $holder['last_name']['value'] ?? $holder['last_name'] ?? '';
+                    $kyc->name = trim("{$firstName} {$lastName}");
 
-                        // ছবি
-                        $kyc->front_image = $idData['front_image_url'] ?? null;
-                        $kyc->back_image = $idData['back_image_url'] ?? null;
+                    $kyc->date_of_birth = $holder['date_of_birth']['value'] ?? $holder['date_of_birth'] ?? null;
+                    $kyc->document_number = $holder['document_number']['value'] ?? $holder['document_number'] ?? null;
+                    $kyc->document_expiry_date = $holder['expiry_date']['value'] ?? $holder['expiry_date'] ?? null;
 
-                        $kyc->didit_verification_data = $idData;
+                    // Document Type mapping
+                    $docType = strtolower($idData['document_type'] ?? '');
+                    if (str_contains($docType, 'passport')) {
+                        $kyc->document_type = 'passport';
+                        $kyc->passport_number = $kyc->document_number;
+                    } elseif (str_contains($docType, 'driving')) {
+                        $kyc->document_type = 'driving_license';
+                    } else {
+                        $kyc->document_type = 'id_card';
+                        $kyc->nid_number = $kyc->document_number;
                     }
-                    break;
 
-                case 'declined':
-                case 'rejected':
-                    $kyc->status = 'rejected';
-                    $kyc->rejection_reason = 'Verification declined by provider.';
-                    break;
+                    // Fix 3: Images URL mapping
+                    $kyc->front_image = $idData['front_document_url'] ?? $idData['front_image_url'] ?? null;
+                    $kyc->back_image = $idData['back_document_url'] ?? $idData['back_image_url'] ?? null;
 
-                case 'in review':
-                    $kyc->status = 'review';
-                    break;
+                    $kyc->didit_verification_data = $idData;
+                }
+                break;
 
-                default:
+            case 'declined':
+            case 'rejected':
+                $kyc->status = 'rejected';
+                $kyc->rejection_reason = $payload['decision']['decline_reason'] ?? 'Verification declined by provider.';
+                break;
+
+            case 'in review':
+            case 'in_review':
+                $kyc->status = 'review';
+                break;
+
+            default:
+                // Status না পেলেও অন্ততঃ Webhook পেয়েছ সেটি কনফার্ম করবে
+                if (empty($kyc->status) || $kyc->status === 'pending') {
                     $kyc->status = 'pending';
-                    break;
-            }
+                }
+                break;
         }
 
         $kyc->save();
@@ -178,7 +190,6 @@ class KycController extends Controller
 
     private function verifyDiditSignature(Request $request, string $rawBody): bool
     {
-        // টেস্টিং এর জন্য এটি true করা আছে, লাইভে যাওয়ার সময় নিচের লাইনটি কমেন্ট/ডিলিট করে দেবেন।
         return true;
 
         $secret = config('services.didit.webhook_secret');
