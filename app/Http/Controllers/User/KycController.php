@@ -5,10 +5,10 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\UserKyc;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class KycController extends Controller
 {
@@ -19,30 +19,36 @@ class KycController extends Controller
     {
         $user = Auth::user(); // কারেন্ট লগইন করা ইউজার
 
-        $apiKey     = config('services.didit.api_key');
+        $apiKey = config('services.didit.api_key');
         $workflowId = config('services.didit.workflow_id');
-        $apiUrl     = config('services.didit.url') . '/session'; // v3 Session Endpoint
+        $apiUrl = rtrim(config('services.didit.url'), '/').'/session/'; // v3 Session Endpoint, trailing slash সহ
 
-        // Didit API-তে সেশন ক্রিয়েট করার রিকোয়েস্ট পাঠানো
+        // Didit API-তে সেশন ক্রিয়েট করার রিকোয়েস্ট পাঠানো
         $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $apiKey,
-            'Content-Type'  => 'application/json',
+            'x-api-key' => $apiKey,      // Bearer না, x-api-key
+            'Content-Type' => 'application/json',
         ])->post($apiUrl, [
-            'workflow_id'  => $workflowId,
-            'vendor_data'  => (string) $user->id, // ট্র্যাকিং এর জন্য ইউজার আইডি পাঠানো
-            'redirect_url' => url('/kyc/callback'), // ভেরিফিকেশন শেষে ইউজার যেখানে ব্যাক করবে
+            'workflow_id' => $workflowId,
+            'vendor_data' => (string) $user->id, // ট্র্যাকিং এর জন্য ইউজার আইডি পাঠানো
+            'callback' => 'http://teracash.pixelstack.cloud/api/webhooks/didit', // redirect_url না, callback ফিল্ড
         ]);
 
         if ($response->failed()) {
-            Log::error('Didit Session Creation Failed', ['response' => $response->body()]);
+            Log::error('Didit Session Creation Failed', [
+                'status' => $response->status(),
+                'response' => $response->body(),
+            ]);
+
             return response()->json(['error' => 'Could not initialize verification session.'], 500);
         }
 
         $data = $response->json();
-        $sessionId = $data['id'] ?? null;
+        $sessionId = $data['session_id'] ?? $data['id'] ?? null;
         $verificationUrl = $data['url'] ?? null;
 
-        if (!$sessionId || !$verificationUrl) {
+        if (! $sessionId || ! $verificationUrl) {
+            Log::error('Didit Invalid Session Data', ['response' => $data]);
+
             return response()->json(['error' => 'Invalid data from verification provider.'], 500);
         }
 
@@ -51,50 +57,50 @@ class KycController extends Controller
             ['user_id' => $user->id],
             [
                 'didit_session_id' => $sessionId,
-                'status'           => 'pending',
-                'didit_response'   => $data,
-                'last_attempt_at'  => now(),
-                'attempt_count'    => DB::raw('attempt_count + 1')
+                'status' => 'pending',
+                'didit_response' => $data,
+                'last_attempt_at' => now(),
+                'attempt_count' => DB::raw('attempt_count + 1'),
             ]
         );
 
         return response()->json([
             'success' => true,
-            'verification_url' => $verificationUrl // এই লিংকে ইউজার আইডি কার্ড আপলোড করবে
+            'verification_url' => $verificationUrl, // এই লিংকে ইউজার আইডি কার্ড আপলোড করবে
         ], 200);
     }
 
-    
     public function initiateVerification(Request $request)
     {
         $rawBody = $request->getContent();
         $timestamp = $request->header('X-Timestamp');
 
         // টাইমস্ট্যাম্প চেক (প্রোডাকশনের জন্য এটি একটিভ রাখবেন, টেস্টের সময় চাইলে স্কিপ করতে পারেন)
-        if (!$timestamp) {
+        if (! $timestamp) {
             return response()->json(['error' => 'Timestamp is missing'], 400);
         }
 
         // সিগনেচার ভেরিফিকেশন
-        if (!$this->verifyDiditSignature($request, $rawBody)) {
+        if (! $this->verifyDiditSignature($request, $rawBody)) {
             return response()->json(['error' => 'Invalid webhook signature'], 401);
         }
 
         $payload = json_decode($rawBody, true);
-        if (!$payload) {
+        if (! $payload) {
             return response()->json(['error' => 'Invalid JSON payload'], 400);
         }
 
         $webhookType = $payload['webhook_type'] ?? '';
-        $sessionId   = $payload['session_id'] ?? null;
-        $eventId     = $payload['event_id'] ?? null;
-        $status      = $payload['status'] ?? '';
+        $sessionId = $payload['session_id'] ?? null;
+        $eventId = $payload['event_id'] ?? null;
+        $status = $payload['status'] ?? '';
 
         // সেশন আইডি ধরে আপনার ডেটাবেজের রেকর্ড খুঁজে বের করা
         $kyc = UserKyc::where('didit_session_id', $sessionId)->first();
 
-        if (!$kyc) {
+        if (! $kyc) {
             Log::warning("UserKyc record not found for Didit Session ID: {$sessionId}");
+
             return response()->json(['error' => 'Session not found'], 404);
         }
 
@@ -106,10 +112,10 @@ class KycController extends Controller
         }
 
         // মেটাডেটা স্টোর
-        $kyc->didit_webhook_payload      = $payload;
+        $kyc->didit_webhook_payload = $payload;
         $kyc->didit_webhook_received_at = now();
-        $kyc->didit_workflow_id          = $payload['workflow_id'] ?? $kyc->didit_workflow_id;
-        $kyc->didit_attempt_id           = $payload['attempt_id'] ?? $kyc->didit_attempt_id;
+        $kyc->didit_workflow_id = $payload['workflow_id'] ?? $kyc->didit_workflow_id;
+        $kyc->didit_attempt_id = $payload['attempt_id'] ?? $kyc->didit_attempt_id;
 
         // স্ট্যাটাস এবং ডেটা আপডেট প্রসেস
         if (in_array($webhookType, ['status.updated', 'data.updated'])) {
@@ -124,16 +130,16 @@ class KycController extends Controller
                     $decision = $payload['decision'] ?? [];
                     $idVerifications = $decision['id_verifications'] ?? [];
 
-                    if (!empty($idVerifications)) {
+                    if (! empty($idVerifications)) {
                         $idData = $idVerifications[0];
                         $holder = $idData['holder_fields'] ?? [];
 
                         // ১. পার্সোনাল ডেটা অটো-ম্যাপিং ও স্টোর
-                        $kyc->name          = trim(($holder['first_name'] ?? '') . ' ' . ($holder['last_name'] ?? ''));
+                        $kyc->name = trim(($holder['first_name'] ?? '').' '.($holder['last_name'] ?? ''));
                         $kyc->date_of_birth = $holder['date_of_birth'] ?? null;
 
                         // ২. ডকুমেন্ট নম্বর ম্যাপিং
-                        $docNumber            = $holder['document_number'] ?? null;
+                        $docNumber = $holder['document_number'] ?? null;
                         $kyc->document_number = $docNumber;
                         $kyc->document_expiry_date = $holder['expiry_date'] ?? null;
 
@@ -141,9 +147,9 @@ class KycController extends Controller
                         $docType = strtolower($idData['document_type'] ?? '');
                         $kyc->document_type = match ($docType) {
                             'passport' => 'passport',
-                            'id_card'  => 'id_card',
+                            'id_card' => 'id_card',
                             'driver_license', 'driving_license' => 'driving_license',
-                            default    => 'nid'
+                            default => 'nid'
                         };
 
                         if ($kyc->document_type === 'nid') {
@@ -154,7 +160,7 @@ class KycController extends Controller
 
                         // ৪. ইউজারের স্ক্যান করা আইডি কার্ডের ইমেজ লিঙ্ক স্টোর
                         $kyc->front_image = $idData['front_image_url'] ?? null;
-                        $kyc->back_image  = $idData['back_image_url'] ?? null;
+                        $kyc->back_image = $idData['back_image_url'] ?? null;
 
                         $kyc->didit_verification_data = $idData;
                     }
@@ -164,9 +170,9 @@ class KycController extends Controller
                     $kyc->status = 'rejected';
                     $decision = $payload['decision'] ?? [];
                     $idVerifications = $decision['id_verifications'] ?? [];
-                    $warnings = !empty($idVerifications) ? ($idVerifications[0]['warnings'] ?? []) : [];
+                    $warnings = ! empty($idVerifications) ? ($idVerifications[0]['warnings'] ?? []) : [];
 
-                    $kyc->rejection_reason = !empty($warnings)
+                    $kyc->rejection_reason = ! empty($warnings)
                         ? implode(', ', $warnings)
                         : 'Identity verification criteria declined.';
                     break;
@@ -197,7 +203,7 @@ class KycController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Webhook event successfully captured and synchronized.'
+            'message' => 'Webhook event successfully captured and synchronized.',
         ], 200);
     }
 
@@ -210,7 +216,9 @@ class KycController extends Controller
         return true;
 
         $secret = config('services.didit.webhook_secret');
-        if (!$secret) return false;
+        if (! $secret) {
+            return false;
+        }
 
         $signatureV2 = $request->header('X-Signature-V2');
         $signatureV1 = $request->header('X-Signature');
