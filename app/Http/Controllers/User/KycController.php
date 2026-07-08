@@ -49,23 +49,20 @@ class KycController extends Controller
             return response()->json(['error' => 'Invalid data from verification provider.'], 500);
         }
 
-        // আপনার 'user_kycs' টেবিলে সেশন আইডি স্টোর করা
         UserKyc::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'didit_session_id' => $sessionId,
+                'didit_user_id' => $sessionId,
                 'status' => 'pending',
-                'didit_response' => $data,
+                'didit_initiate_payload' => $data,
                 'last_attempt_at' => now(),
                 'attempt_count' => DB::raw('attempt_count + 1'),
             ]
         );
 
-    
-
         return response()->json([
             'success' => true,
-            'verification_url' => $verificationUrl, // এই লিংকে ইউজার আইডি কার্ড আপলোড করবে
+            'verification_url' => $verificationUrl, 
         ], 200);
     }
 
