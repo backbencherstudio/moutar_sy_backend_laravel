@@ -12,51 +12,51 @@ use Illuminate\Support\Facades\Log;
 
 class KycController extends Controller
 {
-
     public function index(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    // Authenticated ইউজারের KYC রেকর্ড ডাটাবেজ থেকে খুঁজে বের করা
-    $kyc = UserKyc::where('user_id', $user->id)->first();
+        // Authenticated ইউজারের KYC রেকর্ড ডাটাবেজ থেকে খুঁজে বের করা
+        $kyc = UserKyc::where('user_id', $user->id)->first();
 
-    if (! $kyc) {
+        if (! $kyc) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No KYC record found for this user.',
+                'data' => null,
+            ], 404);
+        }
+
         return response()->json([
-            'success' => false,
-            'message' => 'No KYC record found for this user.',
-            'data'    => null,
-        ], 404);
+            'success' => true,
+            'message' => 'KYC profile fetched successfully.',
+            'data' => [
+                'id' => $kyc->id,
+                'status' => $kyc->status,
+                'name' => $kyc->name,
+                'email' => $kyc->email,
+                'phone' => $kyc->phone,
+                'gender' => $kyc->gender,
+                'date_of_birth' => $kyc->date_of_birth?->format('Y-m-d'),
+                'address' => $kyc->address,
+                'country' => $kyc->country,
+                'father_name' => $kyc->father_name,
+                'mother_name' => $kyc->mother_name,
+                'document_type' => $kyc->document_type,
+                'document_number' => $kyc->document_number,
+                'nid_number' => $kyc->nid_number,
+                'didit_verification_data' => $kyc->didit_verification_data,
+                'passport_number' => $kyc->passport_number,
+                'document_expiry_date' => $kyc->document_expiry_date?->format('Y-m-d'),
+                'front_image' => $kyc->front_image,
+                'back_image' => $kyc->back_image,
+                'rejection_reason' => $kyc->rejection_reason,
+                'verified_at' => $kyc->verified_at,
+                'created_at' => $kyc->created_at,
+            ],
+        ], 200);
     }
 
-    return response()->json([
-        'success' => true,
-        'message' => 'KYC profile fetched successfully.',
-        'data'    => [
-            'id'                   => $kyc->id,
-            'status'               => $kyc->status,
-            'name'                 => $kyc->name,
-            'email'                => $kyc->email,
-            'phone'                => $kyc->phone,
-            'gender'               => $kyc->gender,
-            'date_of_birth'        => $kyc->date_of_birth?->format('Y-m-d'),
-            'address'              => $kyc->address,
-            'country'              => $kyc->country,
-            'father_name'          => $kyc->father_name,
-            'mother_name'          => $kyc->mother_name,
-            'document_type'        => $kyc->document_type,
-            'document_number'      => $kyc->document_number,
-            'nid_number'           => $kyc->nid_number,
-            'didit_verification_data' => $kyc->didit_verification_data,
-            'passport_number'      => $kyc->passport_number,
-            'document_expiry_date' => $kyc->document_expiry_date?->format('Y-m-d'),
-            'front_image'          => $kyc->front_image,
-            'back_image'           => $kyc->back_image,
-            'rejection_reason'     => $kyc->rejection_reason,
-            'verified_at'          => $kyc->verified_at,
-            'created_at'           => $kyc->created_at,
-        ],
-    ], 200);
-}
     public function createSession(Request $request)
     {
         $user = Auth::user();
