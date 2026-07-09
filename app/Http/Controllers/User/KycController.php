@@ -16,7 +16,6 @@ class KycController extends Controller
     {
         $user = Auth::user();
 
-        // Authenticated ইউজারের KYC রেকর্ড ডাটাবেজ থেকে খুঁজে বের করা
         $kyc = UserKyc::where('user_id', $user->id)->first();
 
         if (! $kyc) {
@@ -366,4 +365,6 @@ class KycController extends Controller
 
         return false;
     }
+
+
 }
