@@ -12,10 +12,7 @@ class UserKyc extends Model
 
     protected $table = 'user_kycs';
 
-    /**
-     * Mass assignable attributes.
-     * Schema-এর কলামের নামের সাথে হুবহু মিল রাখা হয়েছে।
-     */
+
     protected $fillable = [
         'user_id',
 
@@ -42,7 +39,6 @@ class UserKyc extends Model
         'status',
         'rejection_reason',
 
-        // Didit Integration Fields (Schema Matching)
         'didit_session_id',
         'didit_verification_id',
         'didit_workflow_id',
@@ -68,7 +64,6 @@ class UserKyc extends Model
         'didit_webhook_received_at' => 'datetime',
     ];
 
-    
 
     public function user(): BelongsTo
     {
