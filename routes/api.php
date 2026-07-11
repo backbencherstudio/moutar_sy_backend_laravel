@@ -49,7 +49,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::get('edit/{id}', [PermissionController::class, 'edit'])->name('edit');
         Route::post('update/{id}', [PermissionController::class, 'update'])->name('update');
     });
-    // exchange rate
+    // exchange rating
     Route::prefix('exchange')->name('exchange.')->group(function () {
         Route::get('index', [ExchangeRateController::class, 'index'])->name('index');
         Route::post('calculate', [ExchangeRateController::class, 'calculate'])->name('calculate');
