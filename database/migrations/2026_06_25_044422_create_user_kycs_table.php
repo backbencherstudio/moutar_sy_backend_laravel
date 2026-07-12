@@ -63,7 +63,6 @@ return new class extends Migration
 
             $table->integer('attempt_count')->default(0);
             $table->timestamps();
-            $table->unique('didit_session_id');
             $table->index(['user_id', 'status']);
             $table->index('status');
             $table->index('didit_verification_id');
