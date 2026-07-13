@@ -18,40 +18,6 @@ class ExchangeRateController extends Controller
         ], 200);
     }
 
-    // public function calculate(Request $request)
-    // {
-    //     $request->validate([
-    //         'amount' => 'required|numeric|min:1',
-    //         'to_country' => 'required|string',
-    //         'to_currency' => 'required|string',
-    //     ]);
-
-    //     $rate = ExchangeRate::where('to_country', $request->to_country)
-    //         ->where('to_currency', $request->to_currency)
-    //         ->where('status', 1)
-    //         ->first();
-
-    //     if (!$rate) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Exchange rate not found.'
-    //         ], 404);
-    //     }
-
-    //     // User amount × Exchange Rate
-    //     $convertedAmount = $request->amount * $rate->customer_rate;
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Exchange calculated successfully.',
-    //         'data' => [
-    //             'amount'            => $request->amount,
-    //             'exchange_rate'     => $rate->customer_rate,
-    //             'converted_amount'  => round($convertedAmount, 2),
-    //             'rate_text'         => "1 {$rate->from_currency} = {$rate->customer_rate} {$rate->to_currency}"
-    //         ]
-    //     ]);
-    // }
     public function calculate(Request $request)
     {
         $request->validate([
