@@ -14,7 +14,7 @@ class TestMail extends Mailable
 
     public function __construct($data)
     {
-        $this->data = $data; // optional dynamic content
+        $this->data = $data;
     }
 
     public function build()
