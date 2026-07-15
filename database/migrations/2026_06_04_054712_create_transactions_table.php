@@ -11,22 +11,24 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('transactions', function (Blueprint $table) {
-            $table->id();
-            $table->string('transaction_number')->unique();
-            $table->foreignId('user_id')->constrained()->onDelete('restrict');
-            $table->unsignedBigInteger('transfer_id')->nullable()->index();
-            $table->enum('type', ['debit', 'credit'])->index();
-            $table->enum('purpose', ['money_transfer', 'wallet_deposit', 'transfer_refund', 'bonus'])->default('money_transfer');
-            $table->decimal('amount', 15, 2);
-            $table->string('currency', 3)->default('BDT');
-            $table->decimal('opening_balance', 15, 2);
-            $table->decimal('closing_balance', 15, 2);
-            $table->enum('status', ['pending', 'success', 'failed'])->default('success');
-            $table->string('remarks')->nullable();
-            $table->timestamps();
-            $table->index(['user_id', 'type']);
-        });
+       Schema::create('transactions', function (Blueprint $table) {
+        $table->id();
+        $table->string('transaction_number')->unique();
+        $table->foreignId('user_id')->constrained()->onDelete('restrict');
+        $table->string('reference_number')->nullable()->index();
+        $table->foreignId('transfer_id')->nullable()->constrained()->onDelete('restrict');
+        $table->enum('type', ['debit', 'credit'])->index();
+        $table->enum('purpose', ['wallet_deposit', 'money_transfer', 'transfer_fee', 'transfer_refund', 'bonus', 'withdraw']);
+        $table->decimal('amount', 15, 2);
+        $table->string('currency', 3);
+        $table->decimal('opening_balance', 15, 2);
+        $table->decimal('closing_balance', 15, 2);
+        $table->enum('status', ['pending', 'success', 'failed'])->default('pending');
+        $table->string('remarks')->nullable();
+        $table->timestamps();
+
+        $table->index(['user_id', 'type']);
+    });
     }
 
     /**

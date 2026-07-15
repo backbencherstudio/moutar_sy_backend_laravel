@@ -20,7 +20,6 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|unique:users,phone',
-            // 'password' => 'nullable|string|min:6',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -258,6 +257,7 @@ class UserController extends Controller
         $plainToken = $user->createToken('login_token')->plainTextToken;
 
         $cleanToken = \Illuminate\Support\Str::after($plainToken, '|');
+        
 
         return response()->json([
             'status' => true,

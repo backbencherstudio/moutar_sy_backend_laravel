@@ -85,6 +85,9 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
         Route::post('initiate', [KycController::class, 'createSession'])->name('initiate');
         Route::get('sync-status', [KycController::class, 'checkAndSyncKycStatus'])->name('sync-status');
     });
+    Route::prefix('transfer-money')->name('transfer-money.')->group(function () {
+        Route::post('store', [TransferController::class, 'store'])->name('store');
+    });
 
 });
 

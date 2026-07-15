@@ -64,4 +64,9 @@ return [
         'workflow_id' => env('DIDIT_WORKFLOW_ID'),
         'webhook_secret' => env('DIDIT_WEBHOOK_SECRET'),
     ],
+    'stripe' => [
+    'key' => env('STRIPE_KEY'),
+    'secret' => env('STRIPE_SECRET'),
+    'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+],
 ];
