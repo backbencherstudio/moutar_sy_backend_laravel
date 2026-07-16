@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\EmailController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\User\BeneficiaryController;
 use App\Http\Controllers\User\KycController;
+use App\Http\Controllers\User\TransferController;
 use Illuminate\Support\Facades\Route;
 
 // Admin Public Routes

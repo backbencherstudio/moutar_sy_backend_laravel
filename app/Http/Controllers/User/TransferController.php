@@ -21,9 +21,7 @@ class TransferController extends Controller
         $this->stripe = new StripeClient(config('services.stripe.secret'));
     }
 
-    /**
-     * Store and process a new transfer transaction.
-     */
+   
     public function store(Request $request)
     {
         // 1. Validation

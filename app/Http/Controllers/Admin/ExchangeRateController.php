@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ExchangeRate;
 use Illuminate\Http\Request;
 
+
 class ExchangeRateController extends Controller
 {
     public function index()
@@ -18,147 +19,116 @@ class ExchangeRateController extends Controller
         ], 200);
     }
 
-    public function calculate(Request $request)
+    
+
+   public function store(Request $request)
     {
+       
         $request->validate([
-            'amount' => 'required|numeric|min:1',
-            'to_country' => 'required|string',
-            'to_currency' => 'required|string',
+            'from_country'      => 'required|string',   
+            'from_country_flag' => 'required|image|mimes:jpg,jpeg,png,svg|max:2048',
+            'from_currency'     => 'required|string|size:3',   
+            'to_country'        => 'required|string',
+            'to_country_flag'   => 'required|image|mimes:jpg,jpeg,png,svg|max:2048',
+            'to_currency'       => 'required|string|size:3',  
+            'customer_rate'     => 'required|numeric|min:0',
+            'fixed_fee'         => 'nullable|numeric|min:0',
+            'status'            => 'nullable|in:0,1,true,false', 
         ]);
 
-        $rate = ExchangeRate::where('to_country', $request->to_country)
-            ->where('to_currency', $request->to_currency)
-            ->where('status', 1)
-            ->first();
-
-        if (! $rate) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Exchange rate not found.',
-            ], 404);
+      
+        $fromFlagPath = null;
+        if ($request->hasFile('from_country_flag')) {
+            $fromFlag = $request->file('from_country_flag');
+            $fromFileName = time() . '_from_' . uniqid() . '.' . $fromFlag->getClientOriginalExtension();
+            $fromFlag->move(public_path('uploads/flags'), $fromFileName);
+            $fromFlagPath = 'uploads/flags/' . $fromFileName;
         }
 
-        // Exchange Amount
-        $convertedAmount = $request->amount * $rate->customer_rate;
+    
+        $toFlagPath = null;
+        if ($request->hasFile('to_country_flag')) {
+            $toFlag = $request->file('to_country_flag');
+            $toFileName = time() . '_to_' . uniqid() . '.' . $toFlag->getClientOriginalExtension();
+            $toFlag->move(public_path('uploads/flags'), $toFileName);
+            $toFlagPath = 'uploads/flags/' . $toFileName;
+        }
 
-        // Fees
-        $fixedFee = $rate->fixed_fee ?? 0;
-        $percentageFee = ($request->amount * ($rate->percentage_fee ?? 0)) / 100;
+        $status = $request->has('status') ? filter_var($request->status, FILTER_VALIDATE_BOOLEAN) : true;
 
-        // Total Fee
-        $totalFee = $fixedFee + $percentageFee;
-
-        // User Pays
-        $totalPayable = $request->amount + $totalFee;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Exchange calculated successfully.',
-            'data' => [
-                'amount' => $request->amount,
-                'exchange_rate' => $rate->customer_rate,
-                'converted_amount' => round($convertedAmount, 2),
-
-                'fixed_fee' => round($fixedFee, 2),
-                'percentage_fee' => round($percentageFee, 2),
-                // 'total_fee' => round($totalFee, 2),
-                // 'total_payable' => round($totalPayable, 2),
-
-                'rate_text' => "1 {$rate->from_currency} = {$rate->customer_rate} {$rate->to_currency}",
-            ],
-        ]);
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'to_country' => 'required|string|unique:exchange_rates,to_country',
-            'to_currency' => 'required|string|max:3',
-            'customer_rate' => 'required|numeric|min:0',
-            'fixed_fee' => 'nullable|numeric|min:0',
-            'percentage_fee' => 'nullable|numeric|min:0',
-            'charge_type' => 'required|in:fixed,percentage,both',
-            'status' => 'nullable|boolean',
-        ]);
-
+  
         $rate = ExchangeRate::create([
-            'from_currency' => $request->from_currency,
-            'to_country' => $request->to_country,
-            'to_currency' => strtoupper($request->to_currency),
-            'customer_rate' => $request->customer_rate,
-            'fixed_fee' => $request->fixed_fee ?? 0.00,
-            'percentage_fee' => $request->percentage_fee ?? 0.00,
-            'charge_type' => $request->charge_type,
-            'status' => $request->status ?? 1,
+            'from_country'      => $request->from_country,
+            'from_country_flag' => $fromFlagPath,
+            'from_currency'     => strtoupper($request->from_currency),
+            
+            'to_country'        => $request->to_country,
+            'to_country_flag'   => $toFlagPath,
+            'to_currency'       => strtoupper($request->to_currency),
+            
+            'customer_rate'     => $request->customer_rate,
+            'fixed_fee'         => $request->fixed_fee ?? 0.00,
+            'status'            => $status,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Exchange rate created successfully',
-            'data' => $rate,
+            'message' => 'Exchange rate created successfully.',
+            'data'    => $rate,
         ], 201);
     }
 
-    public function edit($id)
-    {
-        $rate = ExchangeRate::find($id);
+    /**
+ * কারেন্সি ক্যালকুলেশন করার ফাংশন
+ */
+public function calculate(Request $request)
+{
+    // ১. ইনপুট ভ্যালিডেশন
+    $request->validate([
+        'from_currency' => 'required|string|size:3',
+        'to_currency'   => 'required|string|size:3',
+        'amount'        => 'required|numeric|min:0.01',
+    ]);
 
-        if (! $rate) {
-            return response()->json(['success' => false, 'message' => 'Rate not found'], 404);
-        }
+    $fromCurrency = strtoupper($request->from_currency);
+    $toCurrency   = strtoupper($request->to_currency);
+    $amount       = $request->amount;
 
-        return response()->json(['success' => true, 'data' => $rate], 200);
-    }
+    // ২. ডাটাবেজ থেকে একটিভ (Status = 1) এক্সচেঞ্জ রেট খোঁজা
+    $exchangeRate = ExchangeRate::where('from_currency', $fromCurrency)
+                                ->where('to_currency', $toCurrency)
+                                ->where('status', true)
+                                ->first();
 
-    public function update(Request $request, $id)
-    {
-        $rate = ExchangeRate::find($id);
-
-        if (! $rate) {
-            return response()->json(['success' => false, 'message' => 'Rate not found'], 404);
-        }
-
-        $request->validate([
-            'to_country' => 'required|string|unique:exchange_rates,to_country,'.$id,
-            'to_currency' => 'required|string|max:3',
-            'customer_rate' => 'required|numeric|min:0',
-            'fixed_fee' => 'nullable|numeric|min:0',
-            'percentage_fee' => 'nullable|numeric|min:0',
-            'charge_type' => 'required|in:fixed,percentage,both',
-            'status' => 'required|boolean',
-        ]);
-
-        $rate->update([
-            'from_currency' => $request->from_currency ?? 'EUR',
-            'to_country' => $request->to_country,
-            'to_currency' => strtoupper($request->to_currency),
-            'customer_rate' => $request->customer_rate,
-            'fixed_fee' => $request->fixed_fee ?? 0.00,
-            'percentage_fee' => $request->percentage_fee ?? 0.00,
-            'charge_type' => $request->charge_type,
-            'status' => $request->status,
-        ]);
-
+    // যদি রেট খুঁজে না পাওয়া যায়
+    if (!$exchangeRate) {
         return response()->json([
-            'success' => true,
-            'message' => 'Exchange rate updated successfully',
-            'data' => $rate,
-        ], 200);
+            'success' => false,
+            'message' => "Exchange rate not found or inactive for {$fromCurrency} to {$toCurrency}."
+        ], 404);
     }
 
-    public function destroy($id)
-    {
-        $rate = ExchangeRate::find($id);
+    // ৩. হিসাব-নিকাশ (Calculation)
+    $customerRate = $exchangeRate->customer_rate;
+    $fixedFee     = $exchangeRate->fixed_fee;
+    
+    // মূল হিসাব: (পরিমাণ * এক্সচেঞ্জ রেট) + ফিক্সড ফি
+    $convertedAmount = ($amount * $customerRate) + $fixedFee;
 
-        if (! $rate) {
-            return response()->json(['success' => false, 'message' => 'Rate not found'], 404);
-        }
+    // ৪. রেসপন্স পাঠানো
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'from_currency'    => $fromCurrency,
+            'to_currency'      => $toCurrency,
+            'amount'           => $amount,
+            'customer_rate'    => $customerRate,
+            'fixed_fee'        => $fixedFee,
+            'converted_amount' => round($convertedAmount, 4), // দশমিকের পর ৪ ঘর পর্যন্ত রাউন্ড করা
+            'formula'          => "(Amount * Rate) + Fee"
+        ]
+    ], 200);
+}
 
-        $rate->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Exchange rate deleted successfully',
-        ], 200);
-    }
+    
 }

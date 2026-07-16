@@ -10,14 +10,15 @@ class ExchangeRate extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
+     protected $fillable = [
+        'from_country',
+        'from_country_flag',
         'from_currency',
         'to_country',
+        'to_country_flag',
         'to_currency',
         'customer_rate',
         'fixed_fee',
-        'percentage_fee',
-        'charge_type',
         'status',
     ];
 
