@@ -60,7 +60,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::delete('delete/{id}', [ExchangeRateController::class, 'destroy'])->name('destroy');
     });
 
-    // setting
+   //setting admin
     Route::prefix('setting')->name('setting.')->group(function () {
         Route::get('index', [SettingController::class, 'index'])->name('index');
         Route::post('update', [SettingController::class, 'update'])->name('update');
