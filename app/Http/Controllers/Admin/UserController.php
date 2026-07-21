@@ -79,7 +79,7 @@ class UserController extends Controller
             ], 500);
         }
     }
-     //verify OTP and create user
+     
     public function verifyOtp(Request $request)
     {
         $request->validate([
