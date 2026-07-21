@@ -114,7 +114,6 @@ class UserController extends Controller
             'email' => $cachedData['email'],
             'phone' => $cachedData['phone'],
             'image' => $cachedData['image'],
-            // 'password' => $cachedData['password'],
             'email_verified_at' => Carbon::now(),
         ]);
 
