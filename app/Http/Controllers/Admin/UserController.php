@@ -11,10 +11,76 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Twilio\Rest\Client;
+use Illuminate\Support\Facades\Http;
 
 class UserController extends Controller
 {
     
+    // public function register(Request $request)
+    // {
+    //     $validator = Validator::make($request->all(), [
+    //         'name' => 'required|string|max:255',
+    //         'email' => 'required|email|unique:users,email',
+    //         'phone' => 'required|string|unique:users,phone',
+    //         'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+    //     ]);
+
+    //     if ($validator->fails()) {
+    //         return response()->json(['errors' => $validator->errors()], 422);
+    //     }
+
+    //     $imagePath = null;
+    //     if ($request->hasFile('image')) {
+    //         $imagePath = $request->file('image')->store('users', 'public');
+    //     }
+
+    //     $userData = [
+    //         'name' => $request->name,
+    //         'email' => $request->email,
+    //         'phone' => $request->phone,
+    //         // 'password' => Hash::make($request->password),
+    //         'image' => $imagePath,
+    //     ];
+
+    //     Cache::put('temp_user_'.$request->phone, $userData, now()->addMinutes(3));
+
+    //     $otp = rand(1000, 9999);
+
+    //     DB::table('otp_verifications')->where('phone', $request->phone)->delete();
+
+    //     DB::table('otp_verifications')->insert([
+    //         'phone' => $request->phone,
+    //         'otp' => $otp,
+    //         'expires_at' => Carbon::now()->addMinutes(3),
+    //         'created_at' => Carbon::now(),
+    //         'updated_at' => Carbon::now(),
+    //     ]);
+
+    //     try {
+    //         $sid = env('TWILIO_SID');
+    //         $token = env('TWILIO_AUTH_TOKEN');
+    //         $twilio_number = env('TWILIO_NUMBER');
+
+    //         $client = new Client($sid, $token);
+    //         $client->messages->create($request->phone, [
+    //             'from' => $twilio_number,
+    //             'body' => "Your Teracash verification code is: $otp",
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Registration OTP sent to your Phone Number.',
+    //             'phone' => $request->phone,
+    //         ], 200);
+
+    //     } catch (Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Failed to send SMS: '.$e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -25,59 +91,54 @@ class UserController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('users', 'public');
-        }
-
-        $userData = [
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            // 'password' => Hash::make($request->password),
-            'image' => $imagePath,
-        ];
-
-        Cache::put('temp_user_'.$request->phone, $userData, now()->addMinutes(3));
-
-        $otp = rand(1000, 9999);
-
-        DB::table('otp_verifications')->where('phone', $request->phone)->delete();
-
-        DB::table('otp_verifications')->insert([
-            'phone' => $request->phone,
-            'otp' => $otp,
-            'expires_at' => Carbon::now()->addMinutes(3),
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
-        ]);
-
-        try {
-            $sid = env('TWILIO_SID');
-            $token = env('TWILIO_AUTH_TOKEN');
-            $twilio_number = env('TWILIO_NUMBER');
-
-            $client = new Client($sid, $token);
-            $client->messages->create($request->phone, [
-                'from' => $twilio_number,
-                'body' => "Your Teracash verification code is: $otp",
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'message' => 'Registration OTP sent to your Phone Number.',
-                'phone' => $request->phone,
-            ], 200);
-
-        } catch (Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Failed to send SMS: '.$e->getMessage(),
-            ], 500);
+                'errors' => $validator->errors(),
+            ],422);
         }
+
+        $image = null;
+
+        if($request->hasFile('image')){
+            $image = $request->file('image')->store('users','public');
+        }
+
+        Cache::put(
+            'temp_user_'.$request->phone,
+            [
+                'name'=>$request->name,
+                'email'=>$request->email,
+                'phone'=>$request->phone,
+                'image'=>$image,
+            ],
+            now()->addMinutes(10)
+        );
+
+        $response = Http::withHeaders([
+            'x-api-key' => config('services.didit.api_key'),
+            'Accept' => 'application/json',
+        ])->post(config('services.didit.url').'/phone/send/',[
+            'phone_number'=>$request->phone,
+            'options'=>[
+                'code_size'=>6,
+                'preferred_channel'=>'sms'
+            ]
+        ]);
+
+        if(!$response->successful()){
+
+            return response()->json([
+                'status'=>false,
+                'message'=>'OTP Send Failed',
+                'response'=>$response->json()
+            ],400);
+        }
+
+        return response()->json([
+            'status'=>true,
+            'message'=>'OTP Sent Successfully',
+            'data'=>$response->json()
+        ]);
     }
      
     public function verifyOtp(Request $request)
