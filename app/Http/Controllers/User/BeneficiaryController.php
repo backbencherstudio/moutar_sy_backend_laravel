@@ -74,7 +74,7 @@ class BeneficiaryController extends Controller
             'message' => 'OTP sent successfully.',
         ]);
     }
-
+    // veryfyotp
     public function verifyOtp(Request $request)
     {
         $request->validate([
