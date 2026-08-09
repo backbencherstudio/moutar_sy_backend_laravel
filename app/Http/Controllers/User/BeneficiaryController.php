@@ -11,7 +11,7 @@ use Twilio\Rest\Client;
 class BeneficiaryController extends Controller
 {  
 
-   
+//    benificiary
     public function store(Request $request)
     {
         $validated = $request->validate([
