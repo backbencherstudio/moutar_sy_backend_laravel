@@ -11,7 +11,7 @@ use Twilio\Rest\Client;
 class BeneficiaryController extends Controller
 {  
 
-//    benificiary
+ 
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -76,7 +76,7 @@ class BeneficiaryController extends Controller
             'message' => 'OTP sent successfully.',
         ]);
     }
-    // verifyotp
+
     public function verifyOtp(Request $request)
     {
         $request->validate([
