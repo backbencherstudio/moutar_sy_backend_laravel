@@ -23,7 +23,7 @@ Route::post('resetotp', [UserController::class, 'resetOtp']);
 Route::post('login', [UserController::class, 'login']);
 Route::post('loginverify', [UserController::class, 'loginVerify']);
 
-// google login api
+// google login 
 Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
