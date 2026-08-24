@@ -147,6 +147,8 @@ class AdminController extends Controller
         ]);
     }
 
+    // destroy
+
     public function destroy($id)
     {
 
