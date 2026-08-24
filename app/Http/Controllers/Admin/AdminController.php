@@ -89,7 +89,7 @@ class AdminController extends Controller
             'Admin_token' => explode('|', $token)[1],
         ], 200);
     }
-
+//    edit function
     public function edit($id)
     {
         $admin = Admin::findOrFail($id);
