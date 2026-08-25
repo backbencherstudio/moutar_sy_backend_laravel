@@ -113,7 +113,7 @@ class AdminController extends Controller
             'email' => 'required|email|unique:admins,email,'.$id,
             'password' => 'nullable|string|min:6',
             'role' => 'required|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
