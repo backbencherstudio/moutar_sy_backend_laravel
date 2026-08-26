@@ -94,6 +94,8 @@ class BeneficiaryController extends Controller
         }
     }
 
+    
+
     public function verifyOtp(Request $request)
     {
         $request->validate([
@@ -101,7 +103,7 @@ class BeneficiaryController extends Controller
             'otp' => 'required|digits:4',
         ]);
 
-        $user = Auth::user();
+          $phone = Auth::user()->phone;
 
         // Make sure phone is in E.164 format
         $phone = $request->phone;
@@ -146,7 +148,6 @@ class BeneficiaryController extends Controller
             ])->post(
                 config('services.didit.url').'/phone/check/',
                 [
-                    'phone_number' => $phone,
                     'code' => $request->otp,
                 ]
             );
