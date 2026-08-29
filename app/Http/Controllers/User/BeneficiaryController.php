@@ -8,12 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Twilio\Rest\Client;
 
 class BeneficiaryController extends Controller
 {
-    
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -94,8 +91,6 @@ class BeneficiaryController extends Controller
         }
     }
 
-    
-
     public function verifyOtp(Request $request)
     {
         $request->validate([
@@ -103,16 +98,13 @@ class BeneficiaryController extends Controller
             'otp' => 'required|digits:4',
         ]);
 
-          $phone = Auth::user()->phone;
-
-        // Make sure phone is in E.164 format
+        $phone = Auth::user()->phone;
         $phone = $request->phone;
 
         if (! str_starts_with($phone, '+')) {
             $phone = '+'.ltrim($phone, '0');
         }
 
-        // Find OTP request
         $otpData = DB::table('otp_verifications')
             ->where('user_id', $user->id)
             ->where('phone', $phone)
@@ -124,8 +116,6 @@ class BeneficiaryController extends Controller
                 'message' => 'OTP request not found.',
             ], 404);
         }
-
-        // Check local expiry
         if (now()->gt($otpData->expires_at)) {
 
             DB::table('otp_verifications')
