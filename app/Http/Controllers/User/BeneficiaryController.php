@@ -189,7 +189,7 @@ class BeneficiaryController extends Controller
                 'status' => 'active',
             ]);
 
-            // Delete OTP record after successful verification
+       
             DB::table('otp_verifications')
                 ->where('id', $otpData->id)
                 ->delete();
