@@ -130,7 +130,7 @@ class BeneficiaryController extends Controller
 
         try {
 
-            // Verify OTP using Didit
+            // Verify OTP using Didit account height section 
             $response = Http::withHeaders([
                 'x-api-key' => config('services.didit.api_key'),
                 'Accept' => 'application/json',
