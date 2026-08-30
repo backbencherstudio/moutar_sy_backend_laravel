@@ -207,6 +207,11 @@ class BeneficiaryController extends Controller
                 'message' => 'OTP verification failed.',
                 'error' => $e->getMessage(),
             ], 500);
+            // return response ()->json([
+            //     'success' => true,
+            //     'message' => 'otp verification successfully',
+            //     'error' => $e->getmessage(),
+            // ], 500);
         }
     }
 }
