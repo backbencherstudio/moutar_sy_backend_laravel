@@ -153,7 +153,7 @@ class BeneficiaryController extends Controller
                 ], $response->status());
             }
 
-            // Didit OTP not approved
+           
             if (($diditData['status'] ?? null) !== 'Approved') {
                 return response()->json([
                     'success' => false,
