@@ -92,5 +92,5 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
 });
 
-// webhooks kyc status
+// webhooks kyc 
 Route::match(['get', 'post'], '/webhooks/didit', [KycController::class, 'initiateVerification'])->name('didit.webhook');
