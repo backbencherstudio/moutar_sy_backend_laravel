@@ -91,7 +91,9 @@ class BeneficiaryController extends Controller
         }
     }
 
-    public function verifyOtp(Request $request)
+    // verifyotp
+
+     public function verifyOtp(Request $request)
     {
         $request->validate([
             'phone' => 'required|string',
