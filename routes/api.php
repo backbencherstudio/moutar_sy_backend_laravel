@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\MobileMoneyProviderController;
 use App\Http\Controllers\Api\EmailController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\User\BeneficiaryController;
@@ -60,6 +61,16 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::delete('delete/{id}', [ExchangeRateController::class, 'destroy'])->name('destroy');
     });
 
+    // MobileMoneyProvider
+    Route::prefix('mobile-money-providers')->name('mobile-money-providers.')->group(function () {
+        Route::get('index', [MobileMoneyProviderController::class, 'index'])->name('index');
+        Route::post('store', [MobileMoneyProviderController::class, 'store'])->name('store');
+        Route::get('edit/{id}', [MobileMoneyProviderController::class, 'edit'])->name('edit');
+        Route::post('update/{id}', [MobileMoneyProviderController::class, 'update'])->name('update');
+        Route::delete('delete/{id}', [MobileMoneyProviderController::class, 'destroy'])->name('destroy');
+    });
+
+     
    //setting admin 
     Route::prefix('setting')->name('setting.')->group(function () {
         Route::get('index', [SettingController::class, 'index'])->name('index');
