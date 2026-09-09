@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('mobile_money_providers', function (Blueprint $table) {
             $table->id();
-            $table->string('country_name');
+            $table->string('country_name')->comment('Burkina Faso, Benin, Côte d\'Ivoire, Cameroon, Ghana, Guinea, Kenya, Mali, Niger, DRC, Sierra Leone, Senegal, Togo, Uganda');
             $table->string('name');
             $table->tinyInteger('status')->default(1);
             $table->timestamps();

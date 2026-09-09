@@ -65,7 +65,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
     Route::prefix('mobile-money-providers')->name('mobile-money-providers.')->group(function () {
         Route::get('index', [MobileMoneyProviderController::class, 'index'])->name('index');
         Route::post('store', [MobileMoneyProviderController::class, 'store'])->name('store');
-        Route::get('edit/{id}', [MobileMoneyProviderController::class, 'edit'])->name('edit');
+        Route::get('edit/{id}', [MobileMoneyProviderController::class, 'show'])->name('edit');
         Route::post('update/{id}', [MobileMoneyProviderController::class, 'update'])->name('update');
         Route::delete('delete/{id}', [MobileMoneyProviderController::class, 'destroy'])->name('destroy');
     });
@@ -88,6 +88,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
 Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
+        Route::get('index', [BeneficiaryController::class, 'index'])->name('index');
         Route::post('store', [BeneficiaryController::class, 'store'])->name('store');
         Route::post('verify-otp', [BeneficiaryController::class, 'verifyOtp'])->name('verify-otp');
 

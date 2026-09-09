@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MobileMoneyProvider;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MobileMoneyProviderController extends Controller
 {
-     // GET /api/mobile-money-providers
+    // GET /api/mobile-money-providers
     public function index()
     {
         $providers = MobileMoneyProvider::latest()->get();
@@ -20,14 +21,40 @@ class MobileMoneyProviderController extends Controller
         ]);
     }
 
-    // POST /api/mobile-money-providers
     public function store(Request $request)
     {
+        $allowedCountries = [
+            'Burkina Faso',
+            'Benin',
+            "Côte d'Ivoire",
+            'Cameroon',
+            'Ghana',
+            'Guinea',
+            'Kenya',
+            'Mali',
+            'Niger',
+            'DRC',
+            'Sierra Leone',
+            'Senegal',
+            'Togo',
+            'Uganda',
+        ];
+
         $validated = $request->validate([
-            'country_name' => 'required|string|max:100',
-            'name' => 'required|string|max:100',
-            'status' => 'required|integer|in:1,2',
+            'country_name' => [
+                'required',
+                'string',
+                Rule::in($allowedCountries),
+            ],
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'unique:mobile_money_providers,name',
+            ],
         ]);
+
+        $validated['status'] = 1;
 
         $provider = MobileMoneyProvider::create($validated);
 
@@ -38,12 +65,11 @@ class MobileMoneyProviderController extends Controller
         ], 201);
     }
 
-    // GET /api/mobile-money-providers/{id}
     public function show($id)
     {
         $provider = MobileMoneyProvider::find($id);
 
-        if (!$provider) {
+        if (! $provider) {
             return response()->json([
                 'status' => false,
                 'message' => 'Mobile money provider not found.',
@@ -56,22 +82,38 @@ class MobileMoneyProviderController extends Controller
         ]);
     }
 
-    // PUT /api/mobile-money-providers/{id}
     public function update(Request $request, $id)
     {
         $provider = MobileMoneyProvider::find($id);
 
-        if (!$provider) {
+        if (! $provider) {
             return response()->json([
                 'status' => false,
                 'message' => 'Mobile money provider not found.',
             ], 404);
         }
 
+        $allowedCountries = [
+            'Burkina Faso',
+            'Benin',
+            "Côte d'Ivoire",
+            'Cameroon',
+            'Ghana',
+            'Guinea',
+            'Kenya',
+            'Mali',
+            'Niger',
+            'DRC',
+            'Sierra Leone',
+            'Senegal',
+            'Togo',
+            'Uganda',
+        ];
+
         $validated = $request->validate([
-            'country_name' => 'required|string|max:100',
-            'name' => 'required|string|max:100',
-            'status' => 'required|integer|in:1,2',
+            'country_name' => ['sometimes', 'required', 'string', Rule::in($allowedCountries)],
+            'name' => ['sometimes', 'required', 'string', 'max:100'],
+            'status' => ['sometimes', 'required', 'integer', 'in:0,1'],
         ]);
 
         $provider->update($validated);
@@ -80,7 +122,7 @@ class MobileMoneyProviderController extends Controller
             'status' => true,
             'message' => 'Mobile money provider updated successfully.',
             'data' => $provider,
-        ]);
+        ], 200);
     }
 
     // DELETE /api/mobile-money-providers/{id}
@@ -88,7 +130,7 @@ class MobileMoneyProviderController extends Controller
     {
         $provider = MobileMoneyProvider::find($id);
 
-        if (!$provider) {
+        if (! $provider) {
             return response()->json([
                 'status' => false,
                 'message' => 'Mobile money provider not found.',

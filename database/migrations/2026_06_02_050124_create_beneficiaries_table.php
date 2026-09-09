@@ -12,18 +12,10 @@ return new class extends Migration
         Schema::create('beneficiaries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('name');
-            $table->string('email')->nullable();
-            $table->string('phone_number')->nullable();
-            $table->string('country_code', 5);
-            $table->string('city')->nullable();
-            $table->string('transfer_type')->default('bank',)->comment('e.g., bank, mobile_wallet');
-            $table->string('bank_or_wallet_name')->nullable();
-            $table->string('account_or_wallet_number');
-            $table->string('branch_name')->nullable();
-            $table->string('routing_number')->nullable();
-            $table->string('swift_code')->nullable();
-            $table->enum('status', ['pending', 'active', 'inactive', 'blocked'])->default('active');
+            $table->string('country_name');
+            $table->string('mobile_name');
+            $table->string('mobile_number');
+            $table->string('beneficiary_name');
             $table->timestamps();
         });
     }

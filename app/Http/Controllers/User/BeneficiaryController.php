@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Models\Beneficiary;
+use App\Models\MobileMoneyProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -11,6 +12,24 @@ use Illuminate\Support\Facades\Http;
 
 class BeneficiaryController extends Controller
 {
+    public function index(Request $request)
+    {
+        $request->validate([
+            'country_name' => ['required', 'string'],
+        ]);
+
+        $providers = MobileMoneyProvider::where('country_name', $request->country_name)
+            ->where('status', 1)
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mobile money providers retrieved successfully.',
+            'data' => $providers,
+        ], 200);
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -93,7 +112,7 @@ class BeneficiaryController extends Controller
 
     // verifyotp
 
-     public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request)
     {
         $request->validate([
             'phone' => 'required|string',
@@ -132,7 +151,7 @@ class BeneficiaryController extends Controller
 
         try {
 
-            // Verify OTP using Didit account height section 
+            // Verify OTP using Didit account height section
             $response = Http::withHeaders([
                 'x-api-key' => config('services.didit.api_key'),
                 'Accept' => 'application/json',
@@ -155,7 +174,6 @@ class BeneficiaryController extends Controller
                 ], $response->status());
             }
 
-           
             if (($diditData['status'] ?? null) !== 'Approved') {
                 return response()->json([
                     'success' => false,
@@ -191,7 +209,6 @@ class BeneficiaryController extends Controller
                 'status' => 'active',
             ]);
 
-       
             DB::table('otp_verifications')
                 ->where('id', $otpData->id)
                 ->delete();
@@ -209,7 +226,7 @@ class BeneficiaryController extends Controller
                 'message' => 'OTP verification failed.',
                 'error' => $e->getMessage(),
             ], 500);
-          
+
         }
     }
 }
