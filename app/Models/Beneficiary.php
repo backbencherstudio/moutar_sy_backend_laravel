@@ -11,18 +11,10 @@ class Beneficiary extends Model
 
     protected $fillable = [
         'user_id',
-        'name',
-        'email',
+        'country_name',
+        'mobile_name',
         'phone_number',
-        'country_code',
-        'city',
-        'transfer_type',
-        'bank_or_wallet_name',
-        'account_or_wallet_number',
-        'branch_name',
-        'routing_number',
-        'swift_code',
-        'status',
+        'beneficiary_name', 
     ];
 
     public function user()

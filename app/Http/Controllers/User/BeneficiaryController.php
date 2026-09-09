@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Beneficiary;
 use App\Models\MobileMoneyProvider;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -33,35 +34,45 @@ class BeneficiaryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone_number' => 'nullable|string|max:30|unique:beneficiaries,phone_number',
-            'country_code' => 'required|string|max:5',
-            'city' => 'nullable|string|max:255',
-            'transfer_type' => 'required|in:bank,mobile_wallet',
-            'bank_or_wallet_name' => 'nullable|string|max:255',
-            'account_or_wallet_number' => 'required|string|max:255',
-            'branch_name' => 'nullable|string|max:255',
-            'routing_number' => 'nullable|string|max:255',
-            'swift_code' => 'nullable|string|max:255',
+            'country_name' => 'required|string|max:255',
+            'mobile_name' => 'nullable|string|max:255',
+            'phone_number' => 'required|string|max:30|unique:beneficiaries,phone_number',
+            'beneficiary_name' => 'required|string|max:255',
         ]);
 
         try {
 
-            $phone = $validated['phone_number'];
+            $phone = trim($validated['phone_number']);
+
+            $countryCodes = [
+                'Senegal' => '221',
+
+            ];
 
             if (! str_starts_with($phone, '+')) {
-                $phone = '+'.$validated['country_code'].ltrim($phone, '0');
+
+                $countryCode = $countryCodes[$validated['country_name']] ?? null;
+
+                if (! $countryCode) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Country code not found for selected country.',
+                    ], 422);
+                }
+
+                $phone = ltrim($phone, '0');
+                $phone = '+'.$countryCode.$phone;
             }
 
-            // Send OTP using Didit
             $response = Http::withHeaders([
                 'x-api-key' => config('services.didit.api_key'),
                 'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
             ])->post(
                 config('services.didit.url').'/phone/send/',
                 [
                     'phone_number' => $phone,
+
                     'options' => [
                         'code_size' => 4,
                         'preferred_channel' => 'sms',
@@ -69,7 +80,6 @@ class BeneficiaryController extends Controller
                 ]
             );
 
-            // Didit failed
             if (! $response->successful()) {
                 return response()->json([
                     'success' => false,
@@ -78,7 +88,8 @@ class BeneficiaryController extends Controller
                 ], $response->status());
             }
 
-            // Save beneficiary payload
+            $diditData = $response->json();
+
             DB::table('otp_verifications')->updateOrInsert(
                 [
                     'user_id' => Auth::id(),
@@ -86,7 +97,16 @@ class BeneficiaryController extends Controller
                 ],
                 [
                     'otp' => null,
-                    'payload' => json_encode($validated),
+
+                    'payload' => json_encode([
+                        'country_name' => $validated['country_name'],
+                        'mobile_name' => $validated['mobile_name'] ?? null,
+                        'phone_number' => $phone,
+                        'beneficiary_name' => $validated['beneficiary_name'],
+
+                        'session_id' => $diditData['session_id'] ?? null,
+                    ]),
+
                     'expires_at' => now()->addMinutes(5),
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -96,8 +116,8 @@ class BeneficiaryController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'OTP sent successfully.',
-                'phone' => $phone,
-                'data' => $response->json(),
+                'phone_number' => $phone,
+                'data' => $diditData,
             ], 200);
 
         } catch (\Exception $e) {
@@ -110,66 +130,93 @@ class BeneficiaryController extends Controller
         }
     }
 
-    // verifyotp
-
     public function verifyOtp(Request $request)
     {
         $request->validate([
-            'phone' => 'required|string',
+            'phone_number' => 'required|string',
             'otp' => 'required|digits:4',
         ]);
 
-        $phone = Auth::user()->phone;
-        $phone = $request->phone;
-
-        if (! str_starts_with($phone, '+')) {
-            $phone = '+'.ltrim($phone, '0');
-        }
-
-        $otpData = DB::table('otp_verifications')
-            ->where('user_id', $user->id)
-            ->where('phone', $phone)
-            ->first();
-
-        if (! $otpData) {
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP request not found.',
-            ], 404);
-        }
-        if (now()->gt($otpData->expires_at)) {
-
-            DB::table('otp_verifications')
-                ->where('id', $otpData->id)
-                ->delete();
-
-            return response()->json([
-                'success' => false,
-                'message' => 'OTP expired.',
-            ], 400);
-        }
-
         try {
+            $user = Auth::user();
 
-            // Verify OTP using Didit account height section
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated.',
+                ], 401);
+            }
+
+            $phoneInput = trim($request->phone_number);
+            $formattedPhone = str_starts_with($phoneInput, '+')
+                ? $phoneInput
+                : '+'.ltrim($phoneInput, '0');
+
+            $otpData = DB::table('otp_verifications')
+                ->where('user_id', $user->id)
+                ->where(function ($query) use ($phoneInput, $formattedPhone) {
+                    $query->where('phone', $phoneInput)
+                        ->orWhere('phone', $formattedPhone);
+                })
+                ->latest('id')
+                ->first();
+
+            if (! $otpData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'OTP request not found or invalid phone number.',
+                ], 404);
+            }
+
+            if (now()->greaterThan(Carbon::parse($otpData->expires_at))) {
+                DB::table('otp_verifications')
+                    ->where('id', $otpData->id)
+                    ->delete();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'OTP expired.',
+                ], 400);
+            }
+
+            $payload = json_decode($otpData->payload, true);
+
+            if (! $payload) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Beneficiary verification payload is missing or invalid.',
+                ], 400);
+            }
+
+            $diditPhone = $otpData->phone;
+            if (! str_starts_with($diditPhone, '+')) {
+                $diditPhone = '+'.ltrim($diditPhone, '0');
+            }
+
+            $diditBody = [
+                'phone_number' => $diditPhone,
+                'code' => (string) $request->otp,
+            ];
+
+            if (! empty($payload['session_id'])) {
+                $diditBody['session_id'] = $payload['session_id'];
+            }
+
             $response = Http::withHeaders([
                 'x-api-key' => config('services.didit.api_key'),
                 'Accept' => 'application/json',
                 'Content-Type' => 'application/json',
             ])->post(
-                config('services.didit.url').'/phone/check/',
-                [
-                    'code' => $request->otp,
-                ]
+                rtrim(config('services.didit.url'), '/').'/phone/check/',
+                $diditBody
             );
 
             $diditData = $response->json();
 
-            // Didit API error
             if (! $response->successful()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'OTP verification failed.',
+                    'message' => $diditData['message'] ?? 'Didit OTP verification failed.',
                     'response' => $diditData,
                 ], $response->status());
             }
@@ -177,36 +224,17 @@ class BeneficiaryController extends Controller
             if (($diditData['status'] ?? null) !== 'Approved') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid OTP.',
+                    'message' => 'Invalid or unapproved OTP.',
                     'response' => $diditData,
                 ], 400);
             }
 
-            // Get beneficiary data
-            $data = json_decode($otpData->payload, true);
-
-            if (! $data) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Beneficiary data not found.',
-                ], 400);
-            }
-
-            // Create beneficiary
             $beneficiary = Beneficiary::create([
                 'user_id' => $user->id,
-                'name' => $data['name'],
-                'email' => $data['email'] ?? null,
-                'phone_number' => $data['phone_number'] ?? $phone,
-                'country_code' => strtoupper($data['country_code']),
-                'city' => $data['city'] ?? null,
-                'transfer_type' => $data['transfer_type'],
-                'bank_or_wallet_name' => $data['bank_or_wallet_name'] ?? null,
-                'account_or_wallet_number' => $data['account_or_wallet_number'],
-                'branch_name' => $data['branch_name'] ?? null,
-                'routing_number' => $data['routing_number'] ?? null,
-                'swift_code' => $data['swift_code'] ?? null,
-                'status' => 'active',
+                'country_name' => $payload['country_name'] ?? null,
+                'mobile_name' => $payload['mobile_name'] ?? null,
+                'phone_number' => $payload['phone_number'] ?? $diditPhone,
+                'beneficiary_name' => $payload['beneficiary_name'] ?? null,
             ]);
 
             DB::table('otp_verifications')
@@ -220,13 +248,11 @@ class BeneficiaryController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'OTP verification failed.',
                 'error' => $e->getMessage(),
             ], 500);
-
         }
     }
 }
