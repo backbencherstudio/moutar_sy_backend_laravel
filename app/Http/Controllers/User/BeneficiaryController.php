@@ -31,25 +31,133 @@ class BeneficiaryController extends Controller
         ], 200);
     }
 
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'country_name' => 'required|string|max:255',
+    //         'mobile_name' => 'nullable|string|max:255',
+    //         'phone_number' => 'required|string|max:30|unique:beneficiaries,phone_number',
+    //         'beneficiary_name' => 'required|string|max:255',
+    //     ]);
+
+    //     try {
+
+    //         $phone = trim($validated['phone_number']);
+
+    //         $countryCodes = [
+    //             'Senegal' => '221',
+
+    //         ];
+
+    //         if (! str_starts_with($phone, '+')) {
+
+    //             $countryCode = $countryCodes[$validated['country_name']] ?? null;
+
+    //             if (! $countryCode) {
+    //                 return response()->json([
+    //                     'success' => false,
+    //                     'message' => 'Country code not found for selected country.',
+    //                 ], 422);
+    //             }
+
+    //             $phone = ltrim($phone, '0');
+    //             $phone = '+'.$countryCode.$phone;
+    //         }
+
+    //         $response = Http::withHeaders([
+    //             'x-api-key' => config('services.didit.api_key'),
+    //             'Accept' => 'application/json',
+    //             'Content-Type' => 'application/json',
+    //         ])->post(
+    //             config('services.didit.url').'/phone/send/',
+    //             [
+    //                 'phone_number' => $phone,
+
+    //                 'options' => [
+    //                     'code_size' => 4,
+    //                     'preferred_channel' => 'sms',
+    //                 ],
+    //             ]
+    //         );
+
+    //         if (! $response->successful()) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => 'Failed to send OTP.',
+    //                 'response' => $response->json(),
+    //             ], $response->status());
+    //         }
+
+    //         $diditData = $response->json();
+
+    //         DB::table('otp_verifications')->updateOrInsert(
+    //             [
+    //                 'user_id' => Auth::id(),
+    //                 'phone' => $phone,
+    //             ],
+    //             [
+    //                 'otp' => null,
+
+    //                 'payload' => json_encode([
+    //                     'country_name' => $validated['country_name'],
+    //                     'mobile_name' => $validated['mobile_name'] ?? null,
+    //                     'phone_number' => $phone,
+    //                     'beneficiary_name' => $validated['beneficiary_name'],
+
+    //                     'session_id' => $diditData['session_id'] ?? null,
+    //                 ]),
+
+    //                 'expires_at' => now()->addMinutes(5),
+    //                 'created_at' => now(),
+    //                 'updated_at' => now(),
+    //             ]
+    //         );
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'message' => 'OTP sent successfully.',
+    //             'phone_number' => $phone,
+    //             'data' => $diditData,
+    //         ], 200);
+
+    //     } catch (\Exception $e) {
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Failed to send OTP.',
+    //             'error' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
     public function store(Request $request)
     {
         $validated = $request->validate([
             'country_name' => 'required|string|max:255',
             'mobile_name' => 'nullable|string|max:255',
-            'phone_number' => 'required|string|max:30|unique:beneficiaries,phone_number',
             'beneficiary_name' => 'required|string|max:255',
         ]);
 
         try {
 
-            $phone = trim($validated['phone_number']);
+            // Logged-in user's account phone number
+            $user = Auth::user();
 
-            $countryCodes = [
-                'Senegal' => '221',
+            if (! $user || ! $user->phone) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User phone number not found.',
+                ], 422);
+            }
 
-            ];
+            // ONLY account creation phone number
+            $phone = trim($user->phone);
 
+            // Format phone number
             if (! str_starts_with($phone, '+')) {
+
+                $countryCodes = [
+                    'Senegal' => '221',
+                ];
 
                 $countryCode = $countryCodes[$validated['country_name']] ?? null;
 
@@ -64,6 +172,7 @@ class BeneficiaryController extends Controller
                 $phone = '+'.$countryCode.$phone;
             }
 
+            // Send OTP to user's registered phone
             $response = Http::withHeaders([
                 'x-api-key' => config('services.didit.api_key'),
                 'Accept' => 'application/json',
@@ -92,7 +201,7 @@ class BeneficiaryController extends Controller
 
             DB::table('otp_verifications')->updateOrInsert(
                 [
-                    'user_id' => Auth::id(),
+                    'user_id' => $user->id,
                     'phone' => $phone,
                 ],
                 [
@@ -101,7 +210,10 @@ class BeneficiaryController extends Controller
                     'payload' => json_encode([
                         'country_name' => $validated['country_name'],
                         'mobile_name' => $validated['mobile_name'] ?? null,
+
+                        // User's registered phone
                         'phone_number' => $phone,
+
                         'beneficiary_name' => $validated['beneficiary_name'],
 
                         'session_id' => $diditData['session_id'] ?? null,
@@ -115,7 +227,7 @@ class BeneficiaryController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'OTP sent successfully.',
+                'message' => 'OTP sent successfully to your registered phone number.',
                 'phone_number' => $phone,
                 'data' => $diditData,
             ], 200);

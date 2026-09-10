@@ -40,23 +40,6 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URL'),
     ],
-
-    'twilio' => [
-        'sid' => env('TWILIO_SID'),
-        'token' => env('TWILIO_AUTH_TOKEN'),
-        'number' => env('TWILIO_NUMBER'),
-    ],
-    'hub2' => [
-        'base_url' => env('HUB2_BASE_URL'),
-        'api_key' => env('HUB2_API_KEY'),
-        'merchant_id' => env('HUB2_MERCHANT_ID'),
-        'environment' => env('HUB2_ENVIRONMENT'),
-    ],
-    'zeepay' => [
-        'url' => env('ZEEPAY_BASE_URL'),
-        'key' => env('ZEEPAY_API_KEY'),
-        'secret' => env('ZEEPAY_SECRET'),
-    ],
     'didit' => [
         'base_url' => env('DIDIT_BASE_URL', 'https://api.didit.me'),
         'url' => env('DIDIT_API_URL', 'https://verification.didit.me/v3'),
@@ -65,8 +48,14 @@ return [
         'webhook_secret' => env('DIDIT_WEBHOOK_SECRET'),
     ],
     'stripe' => [
-    'key' => env('STRIPE_KEY'),
-    'secret' => env('STRIPE_SECRET'),
-    'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
-],
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+    'digipay' => [
+        'base_url' => env('DIGIPAY_BASE_URL'),
+        'api_key' => env('DIGIPAY_API_KEY'),
+        'api_secret' => env('DIGIPAY_API_SECRET'),
+        'webhook_secret' => env('DIGIPAY_WEBHOOK_SECRET'),
+    ],
 ];
