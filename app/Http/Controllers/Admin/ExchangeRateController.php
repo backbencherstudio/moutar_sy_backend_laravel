@@ -79,7 +79,7 @@ class ExchangeRateController extends Controller
         ], 201);
     }
 
-  //calculate the converted amount based on the provided exchange rate and fixed fee
+  
     public function calculate(Request $request)
     {
     

@@ -91,7 +91,6 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
         Route::get('index', [BeneficiaryController::class, 'index'])->name('index');
         Route::post('store', [BeneficiaryController::class, 'store'])->name('store');
         Route::post('verify-otp', [BeneficiaryController::class, 'verifyOtp'])->name('verify-otp');
-
     });
     Route::prefix('kyc')->name('kyc.')->group(function () {
         Route::get('index', [KycController::class, 'index'])->name('index');
