@@ -28,7 +28,7 @@ Route::post('loginverify', [UserController::class, 'loginVerify']);
 Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
-// Admin Protected Routes
+// Admin Protected 
 // Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('/register', [AdminController::class, 'register'])->name('register');
