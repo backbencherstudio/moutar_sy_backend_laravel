@@ -37,7 +37,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
     Route::post('/update/{id}', [AdminController::class, 'update'])->name('update');
     Route::delete('/delete/{id}', [AdminController::class, 'destroy'])->name('destroy');
 
-    // Role
+    // Role permision
     Route::prefix('role')->name('role.')->group(function () {
         Route::get('index', [RoleController::class, 'index'])->name('index');
         Route::post('store', [RoleController::class, 'store'])->name('store');
