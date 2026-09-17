@@ -280,8 +280,8 @@ class UserController extends Controller
 
  
 
-        public function resetOtp(Request $request)
-            {
+    public function resetOtp(Request $request)
+         {
             
                 $request->validate([
                     'phone' => 'required|string',
@@ -335,7 +335,7 @@ class UserController extends Controller
                         'message' => 'Failed to resend SMS: ' . $e->getMessage(),
                     ], 500);
                 }
-            }
+            }   
 
    
 
