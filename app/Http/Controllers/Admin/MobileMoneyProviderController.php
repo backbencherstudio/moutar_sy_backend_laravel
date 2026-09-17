@@ -125,7 +125,7 @@ class MobileMoneyProviderController extends Controller
         ], 200);
     }
 
-    
+     
     public function destroy($id)
     {
         $provider = MobileMoneyProvider::find($id);
