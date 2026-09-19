@@ -125,7 +125,7 @@ class MobileMoneyProviderController extends Controller
         ], 200);
     }
 
-     
+     //delete a mobile money provider
     public function destroy($id)
     {
         $provider = MobileMoneyProvider::find($id);
