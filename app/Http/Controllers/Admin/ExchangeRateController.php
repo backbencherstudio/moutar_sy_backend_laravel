@@ -19,9 +19,7 @@ class ExchangeRateController extends Controller
             'data' => $rates,
         ], 200);
     }
-
-    
-
+    // public store
    public function store(Request $request)
     {
        
@@ -79,7 +77,6 @@ class ExchangeRateController extends Controller
         ], 201);
     }
 
-  
     public function calculate(Request $request)
     {
     
