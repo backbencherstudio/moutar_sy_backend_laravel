@@ -383,6 +383,8 @@ class UserController extends Controller
     //         ], 500);
     //     }
     // }
+    
+    //  login
         public function login(Request $request)
         {
             $validator = Validator::make($request->all(), [
