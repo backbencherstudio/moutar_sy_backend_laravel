@@ -61,7 +61,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::delete('delete/{id}', [ExchangeRateController::class, 'destroy'])->name('destroy');
     });
 
-    // MobileMoneyProvider
+    // MobileMoney
     Route::prefix('mobile-money-providers')->name('mobile-money-providers.')->group(function () {
         Route::get('index', [MobileMoneyProviderController::class, 'index'])->name('index');
         Route::post('store', [MobileMoneyProviderController::class, 'store'])->name('store');
