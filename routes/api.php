@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\ExchangeRateController;
+use App\Http\Controllers\Admin\MobileMoneyProviderController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\MobileMoneyProviderController;
 use App\Http\Controllers\Api\EmailController;
 use App\Http\Controllers\Api\GoogleAuthController;
 use App\Http\Controllers\User\BeneficiaryController;
@@ -24,11 +24,11 @@ Route::post('resetotp', [UserController::class, 'resetOtp']);
 Route::post('login', [UserController::class, 'login']);
 Route::post('loginverify', [UserController::class, 'loginVerify']);
 
-// google login 
+// google login
 Route::get('auth/google', [GoogleAuthController::class, 'redirectToGoogle']);
 Route::get('auth/google/callback', [GoogleAuthController::class, 'handleGoogleCallback']);
 
-// Admin 
+// Admin
 // Route::middleware(['auth:api', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
 Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('/register', [AdminController::class, 'register'])->name('register');
@@ -51,7 +51,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::get('edit/{id}', [PermissionController::class, 'edit'])->name('edit');
         Route::post('update/{id}', [PermissionController::class, 'update'])->name('update');
     });
-    // exchange rating
+    // exchange rating system 
     Route::prefix('exchange')->name('exchange.')->group(function () {
         Route::get('index', [ExchangeRateController::class, 'index'])->name('index');
         Route::post('calculate', [ExchangeRateController::class, 'calculate'])->name('calculate');
@@ -70,14 +70,13 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::delete('delete/{id}', [MobileMoneyProviderController::class, 'destroy'])->name('destroy');
     });
 
-     
-   //setting dashboard admin
+    // setting dashboard admin
     Route::prefix('setting')->name('setting.')->group(function () {
         Route::get('index', [SettingController::class, 'index'])->name('index');
         Route::post('update', [SettingController::class, 'update'])->name('update');
     });
 
-    // mail 
+    // mail
     Route::prefix('mail')->group(function () {
         Route::post('/send-email', [EmailController::class, 'sendEmail']);
 
