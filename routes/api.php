@@ -83,7 +83,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
     });
 
 });
-//  user Routes
+//  user Routes settings
 Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
