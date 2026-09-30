@@ -51,7 +51,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::get('edit/{id}', [PermissionController::class, 'edit'])->name('edit');
         Route::post('update/{id}', [PermissionController::class, 'update'])->name('update');
     });
-    // exchange rating system 
+    // exchange rating system
     Route::prefix('exchange')->name('exchange.')->group(function () {
         Route::get('index', [ExchangeRateController::class, 'index'])->name('index');
         Route::post('calculate', [ExchangeRateController::class, 'calculate'])->name('calculate');
@@ -83,7 +83,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
     });
 
 });
-//  user Routes 
+//  user Routes
 Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
@@ -102,5 +102,5 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
 });
 
-// webhooks settings
+// webhooks set
 Route::match(['get', 'post'], '/webhooks/didit', [KycController::class, 'initiateVerification'])->name('didit.webhook');
