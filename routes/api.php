@@ -76,7 +76,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::post('update', [SettingController::class, 'update'])->name('update');
     });
 
-    // mail
+    // mail settings
     Route::prefix('mail')->group(function () {
         Route::post('/send-email', [EmailController::class, 'sendEmail']);
 
