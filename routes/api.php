@@ -70,7 +70,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::delete('delete/{id}', [MobileMoneyProviderController::class, 'destroy'])->name('destroy');
     });
 
-    // setting dashboard admin settings
+    // setting dashboard admin settings route
     Route::prefix('setting')->name('setting.')->group(function () {
         Route::get('index', [SettingController::class, 'index'])->name('index');
         Route::post('update', [SettingController::class, 'update'])->name('update');
