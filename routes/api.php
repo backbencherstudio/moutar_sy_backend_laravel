@@ -83,7 +83,7 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
     });
 
 });
-//  user Routes setings
+//  user Routes 
 Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
@@ -102,5 +102,5 @@ Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
 });
 
-// webhooks settings 
+// webhooks settings
 Route::match(['get', 'post'], '/webhooks/didit', [KycController::class, 'initiateVerification'])->name('didit.webhook');
