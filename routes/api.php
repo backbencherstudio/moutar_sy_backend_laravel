@@ -76,14 +76,14 @@ Route::middleware(['auth:api'])->prefix('admin')->name('admin.')->group(function
         Route::post('update', [SettingController::class, 'update'])->name('update');
     });
 
-    // mail settings
+    // mail settings update
     Route::prefix('mail')->group(function () {
         Route::post('/send-email', [EmailController::class, 'sendEmail']);
 
     });
 
 });
-//  user Routes 
+//  user Routes
 Route::middleware(['auth:user-api'])->prefix('user')->group(function () {
 
     Route::prefix('beneficiaries')->name('beneficiaries.')->group(function () {
